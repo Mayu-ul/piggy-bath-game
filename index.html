@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐷 泡泡小猪洗澡</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(145deg, #ffe9f0, #fff4e4);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'PingFang SC', sans-serif;
+            padding: 10px;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        canvas {
+            border-radius: 30px;
+            box-shadow: 0 20px 40px rgba(220,130,150,0.25);
+            max-width: 100%;
+            height: auto;
+            cursor: none;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="c" width="400" height="550"></canvas>
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+        const W = 400, H = 550;
+
+        let progress = 0;
+        let gameState = 'playing';
+        let doneTimer = 0;
+        let sponge = { x: W/2, y: H/2, tx: W/2, ty: H/2, squish: 0 };
+        let scrubbing = false;
+        let onCanvas = false;
+        let shake = 0;
+        let blink = 'open';
+        let blinkT = 0;
+        let mud = [];
+        let bubbles = [];
+        let sparkles = [];
+
+        for (let i = 0; i < 12; i++) {
+            mud.push({
+                x: 150 + Math.random() * 100,
+                y: 170 + Math.random() * 160,
+                r: 10 + Math.random() * 14,
+                cleaned: 0
+            });
+        }
+
+        function dist(a, b, c, d) { return Math.hypot(a - c, b - d); }
+        function lerp(a, b, t) { return a + (b - a) * t; }
+        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+        function drawPig() {
+            ctx.save();
+            let sx = shake * (Math.random() - 0.5) * 2;
+            let sy = shake * (Math.random() - 0.5) * 2;
+            ctx.translate(sx, sy);
+
+            const bx = W / 2, by = 280;
+            const hx = W / 2, hy = 192;
+
+            ctx.strokeStyle = '#f7a8b8';
+            ctx.lineWidth = 3.5;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(bx + 60, by - 20);
+            ctx.quadraticCurveTo(bx + 82, by - 38, bx + 68, by - 52);
+            ctx.quadraticCurveTo(bx + 54, by - 58, bx + 50, by - 42);
+            ctx.stroke();
+
+            function leg(x, y) {
+                ctx.fillStyle = '#f7a8b8';
+                ctx.beginPath();
+                ctx.roundRect(x - 9, y - 5, 18, 24, 9);
+                ctx.fill();
+                ctx.fillStyle = '#d18a98';
+                ctx.beginPath();
+                ctx.roundRect(x - 7, y + 14, 14, 8, 5);
+                ctx.fill();
+            }
+            leg(bx - 32, by + 42);
+            leg(bx + 30, by + 40);
+
+            let bg = ctx.createRadialGradient(bx - 10, by - 5, 15, bx, by, 70);
+            bg.addColorStop(0, '#ffd2da');
+            bg.addColorStop(0.7, '#fcb5c2');
+            bg.addColorStop(1, '#f090a5');
+            ctx.fillStyle = bg;
+            ctx.beginPath();
+            ctx.ellipse(bx, by, 64, 54, 0, 0, Math.PI * 2);
+            ctx.fill();
+            let bhl = ctx.createRadialGradient(bx - 16, by - 22, 5, bx, by, 50);
+            bhl.addColorStop(0, 'rgba(255,255,255,0.4)');
+            bhl.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = bhl;
+            ctx.beginPath();
+            ctx.ellipse(bx, by, 61, 50, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            leg(bx - 20, by + 44);
+            leg(bx + 18, by + 43);
+
+            let hg = ctx.createRadialGradient(hx - 4, hy - 10, 8, hx, hy, 46);
+            hg.addColorStop(0, '#ffdbe2');
+            hg.addColorStop(0.8, '#fcb5c2');
+            hg.addColorStop(1, '#f090a5');
+            ctx.fillStyle = hg;
+            ctx.beginPath();
+            ctx.arc(hx, hy, 46, 0, Math.PI * 2);
+            ctx.fill();
+            let hhl = ctx.createRadialGradient(hx - 12, hy - 18, 3, hx, hy, 36);
+            hhl.addColorStop(0, 'rgba(255,255,255,0.45)');
+            hhl.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = hhl;
+            ctx.beginPath();
+            ctx.arc(hx, hy, 44, 0, Math.PI * 2);
+            ctx.fill();
+
+            function ear(x, y, angle) {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(angle);
+                let eg = ctx.createLinearGradient(0, -16, 0, 10);
+                eg.addColorStop(0, '#ffcdd8');
+                eg.addColorStop(0.6, '#faa0b2');
+                eg.addColorStop(1, '#e87a90');
+                ctx.fillStyle = eg;
+                ctx.beginPath();
+                ctx.moveTo(-7, 5);
+                ctx.quadraticCurveTo(-13, -12, -4, -20);
+                ctx.quadraticCurveTo(6, -10, 9, 3);
+                ctx.quadraticCurveTo(3, 8, -7, 5);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(255,190,190,0.5)';
+                ctx.beginPath();
+                ctx.moveTo(-4, 3);
+                ctx.quadraticCurveTo(-8, -7, -2, -14);
+                ctx.quadraticCurveTo(4, -5, 5, 1);
+                ctx.quadraticCurveTo(1, 5, -4, 3);
+                ctx.fill();
+                ctx.restore();
+            }
+            ear(hx - 24, hy - 36, -0.25);
+            ear(hx + 22, hy - 38, 0.2);
+
+            const snx = hx + 6, sny = hy + 10;
+            let sg = ctx.createRadialGradient(snx - 2, sny - 3, 3, snx, sny, 20);
+            sg.addColorStop(0, '#ffced8');
+            sg.addColorStop(1, '#f090a5');
+            ctx.fillStyle = sg;
+            ctx.beginPath();
+            ctx.ellipse(snx, sny, 20, 15, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#a14b5a';
+            ctx.beginPath();
+            ctx.arc(snx - 7, sny + 1, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(snx + 7, sny + 1, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(255,160,160,0.4)';
+            ctx.beginPath();
+            ctx.arc(hx - 24, hy + 2, 9, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(hx + 24, hy + 1, 9, 0, Math.PI * 2);
+            ctx.fill();
+
+            function eye(x, y, star) {
+                if (blink === 'closed') {
+                    ctx.strokeStyle = '#4a2a2a';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x - 7, y);
+                    ctx.lineTo(x + 7, y);
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 7, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#2a1018';
+                    ctx.beginPath();
+                    ctx.arc(x + 1, y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(x - 1, y - 3, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    if (star) {
+                        ctx.fillStyle = '#fff';
+                        for (let i = 0; i < 5; i++) {
+                            let a = -Math.PI / 2 + i * Math.PI * 2 / 5;
+                            ctx.beginPath();
+                            ctx.arc(x - 1 + Math.cos(a) * 2.5, y - 2 + Math.sin(a) * 2.5, 1, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
+            }
+            let starEye = gameState === 'done' && doneTimer > 1.2;
+            eye(hx - 14, hy - 10, starEye);
+            eye(hx + 16, hy - 11, starEye);
+
+            ctx.strokeStyle = '#c45a6a';
+            ctx.lineWidth = 2;
+            if (gameState === 'done') {
+                ctx.beginPath();
+                ctx.arc(snx, sny + 9, 8, 0.2, Math.PI - 0.2);
+                ctx.stroke();
+            } else if (progress > 60) {
+                ctx.beginPath();
+                ctx.arc(snx, sny + 9, 6, 0.3, Math.PI - 0.3);
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.arc(snx, sny + 17, 6, Math.PI + 0.3, -0.3);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        function drawMud() {
+            mud.forEach(s => {
+                if (s.cleaned >= 1) return;
+                let a = clamp(1 - s.cleaned, 0, 1);
+                let g = ctx.createRadialGradient(s.x, s.y, s.r * 0.2, s.x, s.y, s.r);
+                g.addColorStop(0, `rgba(90,55,35,${a * 0.9})`);
+                g.addColorStop(0.6, `rgba(75,45,28,${a * 0.7})`);
+                g.addColorStop(1, 'rgba(50,30,18,0)');
+                ctx.fillStyle = g;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function drawSponge() {
+            if (!onCanvas && !scrubbing) return;
+            ctx.save();
+            ctx.translate(sponge.x, sponge.y);
+            let sq = sponge.squish;
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.beginPath();
+            ctx.roundRect(-16 + sq * 3, -10 + sq * 2, 32 - sq * 6, 22 + sq * 3, 7);
+            ctx.fill();
+            let g = ctx.createLinearGradient(0, -14, 0, 14 + sq);
+            g.addColorStop(0, '#ffe680');
+            g.addColorStop(0.4, '#ffd54f');
+            g.addColorStop(1, '#f0a830');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.roundRect(-15 + sq * 3, -11 + sq, 30 - sq * 6, 20 + sq * 2, 6);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.beginPath();
+            ctx.roundRect(-10 + sq * 2, -7 + sq, 14 - sq * 4, 6, 3);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawWater() {
+            const cx = W / 2, wy = 355;
+            let g = ctx.createLinearGradient(0, wy - 6, 0, wy + 28);
+            g.addColorStop(0, 'rgba(160,210,235,0.6)');
+            g.addColorStop(0.7, 'rgba(130,190,220,0.7)');
+            g.addColorStop(1, 'rgba(100,170,200,0.5)');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.ellipse(cx, wy + 10, 130, 22, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 1.5;
+            for (let i = 0; i < 6; i++) {
+                ctx.beginPath();
+                let wx = cx - 80 + i * 32;
+                let wavy = wy + 3 + Math.sin(Date.now() / 1400 + i) * 3;
+                ctx.arc(wx, wavy, 5 + Math.random() * 10, 0, Math.PI);
+                ctx.stroke();
+            }
+        }
+
+        function drawUI() {
+            let bw = 240, bh = 12, bx = (W - bw) / 2, by = 20;
+            ctx.fillStyle = 'rgba(0,0,0,0.06)';
+            ctx.beginPath();
+            ctx.roundRect(bx - 2, by - 2, bw + 4, bh + 4, 10);
+            ctx.fill();
+            ctx.fillStyle = '#f5e8e0';
+            ctx.beginPath();
+            ctx.roundRect(bx, by, bw, bh, 8);
+            ctx.fill();
+            let pw = (progress / 100) * bw;
+            if (pw > 0) {
+                let pg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+                pg.addColorStop(0, '#8dd4ec');
+                pg.addColorStop(0.5, '#5db8d8');
+                pg.addColorStop(1, '#a0ddf2');
+                ctx.fillStyle = pg;
+                ctx.beginPath();
+                ctx.roundRect(bx, by, pw, bh, 8);
+                ctx.fill();
+            }
+            ctx.fillStyle = '#5a4030';
+            ctx.font = 'bold 10px "PingFang SC"';
+            ctx.textAlign = 'center';
+            ctx.fillText('干净 ' + Math.round(progress) + '%', W / 2, by + 10);
+
+            if (gameState === 'done') {
+                let a = clamp(doneTimer / 1.5, 0, 0.5);
+                ctx.fillStyle = `rgba(255,250,245,${a})`;
+                ctx.fillRect(0, 0, W, H);
+                if (doneTimer > 0.8) {
+                    let ta = clamp((doneTimer - 0.8) / 0.5, 0, 1);
+                    ctx.fillStyle = `rgba(210,100,120,${ta})`;
+                    ctx.font = 'bold 24px "PingFang SC"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('✨ 香香小猪 ✨', W / 2, H / 2 - 30);
+                }
+                if (doneTimer > 1.5) {
+                    let ba = clamp((doneTimer - 1.5) / 0.4, 0, 1);
+                    let rbx = W / 2 - 55, rby = H / 2 + 5, rbw = 110, rbh = 36;
+                    ctx.fillStyle = `rgba(255,255,255,${ba * 0.9})`;
+                    ctx.strokeStyle = `rgba(220,140,150,${ba})`;
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.roundRect(rbx, rby, rbw, rbh, 18);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = `rgba(200,90,110,${ba})`;
+                    ctx.font = 'bold 15px "PingFang SC"';
+                    ctx.fillText('🔄 再洗一次', W / 2, rby + 25);
+                }
+            }
+        }
+
+        function gameLoop(ts) {
+            if (!gameLoop.last) gameLoop.last = ts;
+            let dt = (ts - gameLoop.last) / 1000;
+            if (dt > 0.15) dt = 0.15;
+            gameLoop.last = ts;
+
+            sponge.x = lerp(sponge.x, sponge.tx, 1 - Math.exp(-28 * dt));
+            sponge.y = lerp(sponge.y, sponge.ty, 1 - Math.exp(-28 * dt));
+            if (!scrubbing) sponge.squish = lerp(sponge.squish, 0, 1 - Math.exp(-12 * dt));
+
+            blinkT += dt;
+            if (blink === 'open' && blinkT > 2.5 + Math.random() * 3) { blink = 'half';
+                blinkT = 0; } else if (blink === 'half' && blinkT > 0.06) { blink = 'closed';
+                blinkT = 0; } else if (blink === 'closed' && blinkT > 0.08) { blink = 'half';
+                blinkT = 0; } else if (blink === 'half' && blinkT > 0.07) { blink = 'open';
+                blinkT = 0; }
+
+            if (scrubbing && gameState === 'playing') {
+                sponge.squish = lerp(sponge.squish, 1, 1 - Math.exp(-20 * dt));
+                let any = false;
+                mud.forEach(s => {
+                    if (s.cleaned >= 1) return;
+                    let d = dist(sponge.x, sponge.y, s.x, s.y);
+                    let overlap = 26 + s.r - d;
+                    if (overlap > 0) {
+                        let eff = clamp(overlap / (s.r + 26), 0.2, 1);
+                        s.cleaned += eff * dt * 0.72;
+                        if (s.cleaned > 1) s.cleaned = 1;
+                        any = true;
+                        if (Math.random() < dt * 18 * eff) {
+                            bubbles.push({
+                                x: s.x + (Math.random() - 0.5) * 20,
+                                y: s.y + (Math.random() - 0.5) * 20,
+                                r: 4 + Math.random() * 10,
+                                speed: 0.5 + Math.random() * 1.5,
+                                life: 1
+                            });
+                        }
+                    }
+                });
+                if (any) shake = lerp(shake, 1.2, 1 - Math.exp(-18 * dt));
+            }
+            shake = lerp(shake, 0, 1 - Math.exp(-10 * dt));
+            if (shake < 0.03) shake = 0;
+
+            if (gameState === 'playing') {
+                let total = mud.reduce((a, s) => a + clamp(s.cleaned, 0, 1), 0);
+                progress = (total / mud.length) * 100;
+                if (progress >= 99.5) {
+                    progress = 100;
+                    gameState = 'done';
+                    doneTimer = 0;
+                    mud.forEach(s => s.cleaned = 1);
+                }
+            }
+
+            if (gameState === 'done') {
+                doneTimer += dt;
+                if (Math.random() < dt * 5 && doneTimer < 4) {
+                    sparkles.push({
+                        x: 120 + Math.random() * 160,
+                        y: 160 + Math.random() * 140,
+                        life: 1,
+                        r: 3 + Math.random() * 6
+                    });
+                }
+            }
+
+            for (let i = bubbles.length - 1; i >= 0; i--) {
+                bubbles[i].y -= bubbles[i].speed;
+                bubbles[i].life -= dt * 0.4;
+                if (bubbles[i].life <= 0 || bubbles[i].y < -30) bubbles.splice(i, 1);
+            }
+            for (let i = sparkles.length - 1; i >= 0; i--) {
+                sparkles[i].life -= dt * 0.8;
+                sparkles[i].y -= dt * 30;
+                if (sparkles[i].life <= 0) sparkles.splice(i, 1);
+            }
+
+            ctx.clearRect(0, 0, W, H);
+            ctx.fillStyle = '#fef5f7';
+            ctx.fillRect(0, 0, W, H);
+
+            const cx = W / 2;
+            ctx.fillStyle = 'rgba(180,150,150,0.15)';
+            ctx.beginPath();
+            ctx.ellipse(cx, 510, 145, 25, 0, 0, Math.PI * 2);
+            ctx.fill();
+            let tubG = ctx.createLinearGradient(cx, 345, cx, 520);
+            tubG.addColorStop(0, '#fffaf7');
+            tubG.addColorStop(0.6, '#f3e8e4');
+            tubG.addColorStop(1, '#e2d3ce');
+            ctx.fillStyle = tubG;
+            ctx.beginPath();
+            ctx.moveTo(cx - 140, 345);
+            ctx.quadraticCurveTo(cx - 150, 505, cx - 125, 515);
+            ctx.quadraticCurveTo(cx, 523, cx + 125, 515);
+            ctx.quadraticCurveTo(cx + 150, 505, cx + 140, 345);
+            ctx.quadraticCurveTo(cx + 145, 333, cx + 130, 339);
+            ctx.lineTo(cx - 130, 339);
+            ctx.quadraticCurveTo(cx - 145, 333, cx - 140, 345);
+            ctx.fill();
+            ctx.fillStyle = '#ede3df';
+            ctx.beginPath();
+            ctx.ellipse(cx, 355, 132, 20, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            drawPig();
+            if (gameState === 'playing' || (gameState === 'done' && doneTimer < 1)) drawMud();
+            drawWater();
+
+            bubbles.forEach(b => {
+                ctx.save();
+                ctx.globalAlpha = b.life * 0.7;
+                ctx.fillStyle = 'rgba(200,230,255,0.6)';
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.beginPath();
+                ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            sparkles.forEach(s => {
+                ctx.fillStyle = `rgba(255,220,100,${s.life})`;
+                ctx.font = `${s.r * 3}px sans-serif`;
+                ctx.fillText('✨', s.x - s.r, s.y);
+            });
+
+            drawSponge();
+            drawUI();
+
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop.last = 0;
+
+        function pos(e) {
+            let r = canvas.getBoundingClientRect();
+            return {
+                x: (e.clientX - r.left) * (W / r.width),
+                y: (e.clientY - r.top) * (H / r.height)
+            };
+        }
+
+        canvas.addEventListener('mousedown', e => {
+            e.preventDefault();
+            let p = pos(e);
+            sponge.tx = p.x;
+            sponge.ty = p.y;
+            sponge.x = p.x;
+            sponge.y = p.y;
+            scrubbing = true;
+            onCanvas = true;
+            if (gameState === 'done' && doneTimer > 1.5) {
+                let rbx = W / 2 - 55,
+                    rby = H / 2 + 5,
+                    rbw = 110,
+                    rbh = 36;
+                if (p.x > rbx && p.x < rbx + rbw && p.y > rby && p.y < rby + rbh) {
+                    progress = 0;
+                    gameState = 'playing';
+                    doneTimer = 0;
+                    mud.forEach(s => s.cleaned = 0);
+                    bubbles = [];
+                    sparkles = [];
+                    return;
+                }
+            }
+        });
+        canvas.addEventListener('mousemove', e => {
+            e.preventDefault();
+            let p = pos(e);
+            sponge.tx = p.x;
+            sponge.ty = p.y;
+            onCanvas = true;
+        });
+        canvas.addEventListener('mouseup', e => { e.preventDefault();
+            scrubbing = false;
+            sponge.squish = 0; });
+        canvas.addEventListener('mouseleave', () => { onCanvas = false;
+            scrubbing = false;
+            sponge.squish = 0; });
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            let t = e.touches[0];
+            let p = pos(t);
+            sponge.tx = p.x;
+            sponge.ty = p.y;
+            sponge.x = p.x;
+            sponge.y = p.y;
+            scrubbing = true;
+            onCanvas = true;
+            if (gameState === 'done' && doneTimer > 1.5) {
+                let rbx = W / 2 - 55,
+                    rby = H / 2 + 5,
+                    rbw = 110,
+                    rbh = 36;
+                if (p.x > rbx && p.x < rbx + rbw && p.y > rby && p.y < rby + rbh) {
+                    progress = 0;
+                    gameState = 'playing';
+                    doneTimer = 0;
+                    mud.forEach(s => s.cleaned = 0);
+                    bubbles = [];
+                    sparkles = [];
+                    return;
+                }
+            }
+        }, { passive: false });
+        canvas.addEventListener('touchmove', e => {
+            e.preventDefault();
+            let p = pos(e.touches[0]);
+            sponge.tx = p.x;
+            sponge.ty = p.y;
+            onCanvas = true;
+        }, { passive: false });
+        canvas.addEventListener('touchend', e => { e.preventDefault();
+            scrubbing = false;
+            sponge.squish = 0; });
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
