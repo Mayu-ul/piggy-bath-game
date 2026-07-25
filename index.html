@@ -7,7 +7,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: linear-gradient(145deg, #ffe9f0, #fff4e4);
+            background: linear-gradient(180deg, #e8f4f8 0%, #fce4ec 60%, #fff8e1 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -17,438 +17,433 @@
             -webkit-tap-highlight-color: transparent;
             user-select: none;
         }
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        .title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #d4687c;
+            letter-spacing: 0.05em;
+        }
         canvas {
-            border-radius: 30px;
-            box-shadow: 0 20px 40px rgba(220,130,150,0.25);
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(180,140,150,0.25);
             max-width: 100%;
             height: auto;
             cursor: none;
             touch-action: none;
+            background: #fef9fb;
+        }
+        .hint {
+            color: #b08a7a;
+            font-size: 0.85rem;
+            text-align: center;
+            background: rgba(255,255,255,0.65);
+            padding: 4px 16px;
+            border-radius: 20px;
         }
     </style>
 </head>
 <body>
-    <canvas id="c" width="400" height="550"></canvas>
-    <script>
-        const canvas = document.getElementById('c');
-        const ctx = canvas.getContext('2d');
-        const W = 400, H = 550;
+<div class="game-wrapper">
+    <div class="title">🐷 给小猪洗澡 🫧</div>
+    <canvas id="c" width="400" height="520"></canvas>
+    <div class="hint">✨ 按住擦洗泥巴 · 洗完点小猪弹出爱心 ✨</div>
+</div>
+<script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const W = 400, H = 520;
 
-        // ============ 加载 SVG 小猪 ============
-        const pigSVG = new Image();
-        const svgData = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 992 1065">' +
-            '<path fill="#F9E5E3" d="M798 293C799 319 802 344 811 369C816 383 827 395 835 408L852 441L852 445L843 438C853 457 860 476 860 499L855 492L854 492C859 516 859 539 850 563L848 552L845 552C845 572 837 590 823 605L824 599L823 598C821 603 818 607 816 611C805 630 792 648 775 663L741 685L738 687L738 687L737 687L733 688L704 698L635 700L561 680L554 678L553 679L565 688L455 613L454 613L456 631L429 575L428 597L411 524L411 524L408 540L403 540C399 522 401 505 406 488L403 488L405 482L403 440L398 437L344 417L332 402L332 402L332 401L331 401L312 361L279 307L284 264L317 246L403 249L411 253L421 224L423 240L442 201L442 217L444 214L469 185L474 181L479 179L484 174L479 170L520 163L504 155L531 151L558 153L547 144L548 142L590 148L580 139L581 137L611 141L642 152L634 141L654 145L689 160L693 161L694 163L730 194L734 196L744 211L745 210L742 191L744 191L759 208L774 249L777 232L781 236L781 236L781 238L783 242L789 282L796 274L797 280L798 293Z"/>' +
-            '<path fill="#F8CCC7" d="M474 181L469 185L444 214L442 217L442 201L423 240L421 224L411 253L403 249L317 246L284 264L279 307L312 361L332 401L332 402L332 402L333 412L333 412L340 427L375 460L378 466L375 526L378 548L383 533L384 535L384 535L392 592L404 618L407 621L410 606L425 641L444 674L472 699L469 691L468 683L542 744L502 747L473 739L473 739L477 744L524 789L554 830L590 907L601 930L603 941L581 955L573 958L539 964L525 941L495 879L468 836L425 788L386 729L376 707L376 706L376 706L375 700L357 637L351 613L350 613L345 643L314 614L315 620L279 570L277 574L235 460L235 485L249 551L269 607L274 623L257 609L238 570L230 551L228 562L198 461L195 475L194 476L191 464L183 419L182 385L183 351L175 361L182 323L194 287L185 295L183 295L197 265L213 237L201 242L236 206L235 205L224 207L264 179L256 179L309 154L369 152L360 145L402 152L410 155L410 155L410 155L408 150L444 167L442 157L474 181Z"/>' +
-            '<path fill="#EEAFA9" d="M601 930L590 907L554 830L524 789L477 744L473 739L473 739L502 747L542 744L468 683L469 691L472 699L444 674L425 641L410 606L407 621L404 618L392 592L384 535L384 535L383 533L378 548L375 526L378 466L375 460L340 427L333 412L333 412L332 402L336 407L344 417L398 437L403 440L405 482L403 488L406 488L403 540L411 524L411 524L428 597L429 575L456 631L454 613L455 613L565 688L553 679L554 678L561 680L635 700L704 698L733 688L737 687L725 696L716 707L691 766L672 848L675 887L674 907L672 921L664 920L653 929L647 931L631 929L611 937L607 926L604 902L606 855L617 812L664 758L702 723L713 707L710 708L708 709L680 735L659 747L659 747L663 737L618 765L623 756L592 769L589 769L585 770L582 770L566 772L554 772L557 790L578 855L601 925L601 930Z"/>' +
-            '<path fill="#EDAEA8" d="M274 623L269 607L249 551L235 485L235 460L277 574L279 570L315 620L314 614L345 643L350 613L351 613L357 637L375 700L376 706L357 696L354 693L330 673L293 634L287 627L293 642L333 698L357 730L337 741L331 742L304 739L293 691L274 623Z"/>' +
-            '<path fill="#F7CBC7" d="M734 196L730 194L694 163L693 161L716 127L765 101L786 99L799 111L801 126L812 181L823 238L798 293L797 280L796 274L800 269L807 210L798 180L792 149L790 125L776 114L774 114L774 115L769 117L736 161L734 196Z"/>' +
-            '<path fill="#F1A2A0" d="M182 385L183 419L115 398L91 347L93 336L94 336L97 341L116 373L182 385Z"/>' +
-            '<path fill="#F29F9D" d="M539 964L573 958L581 955L603 941L606 953L605 986L602 993L596 995L579 963L579 1001L573 1002L548 982L539 964Z"/>' +
-            '<path fill="#E58C8A" d="M612 937L631 929L647 931L653 929L664 920L672 922L673 925L673 927L674 930L674 934L674 938L674 954L674 956L674 956L674 957L673 957L674 958L673 961L673 962L667 968L651 935L651 973L646 975L634 969L612 937Z"/>' +
-            '<path fill="#D88D89" d="M357 730L333 698L293 642L287 627L293 634L330 673L354 693L357 696L361 734L354 772L345 773L346 773L351 771L358 747L357 730Z"/>' +
-            '<path fill="#E58A88" d="M357 730L358 747L351 771L346 773L336 747L334 748L332 776L326 778L316 769L304 739L331 742L337 741L357 730Z"/>' +
-            '<path fill="#D38F8A" d="M589 770L592 769L593 782L596 835L600 897L604 902L607 926L599 902L593 828L589 770Z"/>' +
-            '<path fill="#D06F6E" d="M579 1001L579 963L596 995L588 992L583 994L579 1001Z"/>' +
-            '<path fill="#B75B5B" d="M651 973L651 935L667 968L656 962L651 973Z"/>' +
-            '<path fill="#B75B5B" d="M332 776L334 748L336 747L346 773L345 773L338 768L332 776Z"/>' +
-            '</svg>';
+    // ============ 游戏状态 ============
+    let progress = 0;
+    let gameState = 'playing';
+    let doneTimer = 0;
+    let sponge = { x: W/2, y: H/2, tx: W/2, ty: W/2, squish: 0 };
+    let scrubbing = false;
+    let onCanvas = false;
+    let shake = 0;
+    let mud = [];
+    let bubbles = [];
+    let sparkles = [];
+    let hearts = [];
 
-        pigSVG.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+    // 泥巴斑点
+    for (let i = 0; i < 14; i++) {
+        mud.push({
+            x: 130 + Math.random() * 140,
+            y: 140 + Math.random() * 220,
+            r: 8 + Math.random() * 16,
+            cleaned: 0
+        });
+    }
 
-        let progress = 0;
-        let gameState = 'playing';
-        let doneTimer = 0;
-        let sponge = { x: W/2, y: H/2, tx: W/2, ty: W/2, squish: 0 };
-        let scrubbing = false;
-        let onCanvas = false;
-        let shake = 0;
-        let mud = [];
-        let bubbles = [];
-        let sparkles = [];
-        let hearts = [];
+    function dist(a, b, c, d) { return Math.hypot(a - c, b - d); }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
-        for (let i = 0; i < 14; i++) {
-            mud.push({
-                x: 130 + Math.random() * 140,
-                y: 150 + Math.random() * 200,
-                r: 8 + Math.random() * 16,
-                cleaned: 0
-            });
-        }
+    // ============ 陶瓷小地砖 ============
+    function drawTileFloor() {
+        const tileSize = 60;
+        const startX = (W - tileSize * 6) / 2;
+        const startY = H - tileSize * 2 + 10;
 
-        function dist(a, b, c, d) { return Math.hypot(a - c, b - d); }
-        function lerp(a, b, t) { return a + (b - a) * t; }
-        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-
-        function drawPig() {
-            ctx.save();
-            let sx = shake * (Math.random() - 0.5) * 2;
-            let sy = shake * (Math.random() - 0.5) * 2;
-            ctx.translate(sx, sy);
-            // 绘制 SVG 小猪，放在浴缸中间
-            const pigW = 220, pigH = 260;
-            const pigX = W/2 - pigW/2, pigY = 160;
-            if (pigSVG.complete && pigSVG.naturalWidth > 0) {
-                ctx.drawImage(pigSVG, pigX, pigY, pigW, pigH);
+        for (let row = 0; row < 2; row++) {
+            for (let col = 0; col < 6; col++) {
+                const x = startX + col * tileSize;
+                const y = startY + row * tileSize;
+                // 地砖底色
+                const hue = 25 + (row + col) * 3;
+                ctx.fillStyle = `hsl(${hue}, 30%, 88%)`;
+                ctx.beginPath();
+                ctx.roundRect(x + 2, y + 2, tileSize - 4, tileSize - 4, 8);
+                ctx.fill();
+                // 高光边
+                ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(x + 2, y + 2, tileSize - 4, tileSize - 4, 8);
+                ctx.stroke();
+                // 阴影边
+                ctx.strokeStyle = 'rgba(180,150,140,0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(x + 4, y + 4, tileSize - 8, tileSize - 8, 6);
+                ctx.stroke();
+                // 小圆点装饰
+                ctx.fillStyle = 'rgba(200,170,160,0.25)';
+                ctx.beginPath();
+                ctx.arc(x + tileSize/2, y + tileSize/2, 4, 0, Math.PI * 2);
+                ctx.fill();
             }
+        }
+        // 地面阴影
+        const shadowGrad = ctx.createLinearGradient(0, startY - 10, 0, startY);
+        shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        shadowGrad.addColorStop(1, 'rgba(0,0,0,0.06)');
+        ctx.fillStyle = shadowGrad;
+        ctx.fillRect(startX, startY - 10, tileSize * 6, 10);
+    }
+
+    // ============ 绘制小猪（SVG + 手绘眼睛） ============
+    function drawPiggy() {
+        ctx.save();
+        const sx = shake * (Math.random() - 0.5) * 2;
+        const sy = shake * (Math.random() - 0.5) * 2;
+        ctx.translate(sx, sy);
+
+        const pigX = W/2 - 105, pigY = 135, pigW = 210, pigH = 250;
+
+        // 身体（简化椭圆）
+        const bodyGrad = ctx.createRadialGradient(W/2 - 5, pigY + 140, 20, W/2, pigY + 145, 90);
+        bodyGrad.addColorStop(0, '#ffdbe2');
+        bodyGrad.addColorStop(0.6, '#fcb5c2');
+        bodyGrad.addColorStop(1, '#f090a5');
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.ellipse(W/2, pigY + 155, 75, 65, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 头部
+        const headGrad = ctx.createRadialGradient(W/2 - 3, pigY + 20, 10, W/2, pigY + 25, 55);
+        headGrad.addColorStop(0, '#ffe8ed');
+        headGrad.addColorStop(0.7, '#fcb5c2');
+        headGrad.addColorStop(1, '#f090a5');
+        ctx.fillStyle = headGrad;
+        ctx.beginPath();
+        ctx.arc(W/2, pigY + 30, 52, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 身体高光
+        const hl = ctx.createRadialGradient(W/2 - 15, pigY + 120, 8, W/2, pigY + 145, 65);
+        hl.addColorStop(0, 'rgba(255,255,255,0.35)');
+        hl.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = hl;
+        ctx.beginPath();
+        ctx.ellipse(W/2, pigY + 155, 70, 60, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 耳朵
+        function ear(x, y, angle) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            const eg = ctx.createLinearGradient(0, -18, 0, 12);
+            eg.addColorStop(0, '#ffcdd8');
+            eg.addColorStop(0.6, '#faa0b2');
+            eg.addColorStop(1, '#e87a90');
+            ctx.fillStyle = eg;
+            ctx.beginPath();
+            ctx.moveTo(-8, 6);
+            ctx.quadraticCurveTo(-15, -14, -5, -22);
+            ctx.quadraticCurveTo(7, -12, 10, 4);
+            ctx.quadraticCurveTo(4, 9, -8, 6);
+            ctx.fill();
             ctx.restore();
         }
+        ear(W/2 - 30, pigY - 8, -0.25);
+        ear(W/2 + 26, pigY - 10, 0.2);
 
-        function drawMud() {
+        // 鼻子
+        const snX = W/2 + 8, snY = pigY + 40;
+        const snGrad = ctx.createRadialGradient(snX - 2, snY - 3, 3, snX, snY, 22);
+        snGrad.addColorStop(0, '#ffced8');
+        snGrad.addColorStop(1, '#f090a5');
+        ctx.fillStyle = snGrad;
+        ctx.beginPath();
+        ctx.ellipse(snX, snY, 22, 16, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#a14b5a';
+        ctx.beginPath(); ctx.arc(snX - 8, snY + 1, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(snX + 8, snY + 1, 4, 0, Math.PI * 2); ctx.fill();
+
+        // 腮红
+        ctx.fillStyle = 'rgba(255,160,160,0.4)';
+        ctx.beginPath(); ctx.arc(W/2 - 28, pigY + 32, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(W/2 + 28, pigY + 30, 10, 0, Math.PI * 2); ctx.fill();
+
+        // 腿
+        function leg(x, y) {
+            ctx.fillStyle = '#f7a8b8';
+            ctx.beginPath(); ctx.roundRect(x - 10, y - 4, 20, 28, 10); ctx.fill();
+            ctx.fillStyle = '#d18a98';
+            ctx.beginPath(); ctx.roundRect(x - 8, y + 18, 16, 10, 5); ctx.fill();
+        }
+        leg(W/2 - 32, pigY + 210);
+        leg(W/2 + 30, pigY + 208);
+        leg(W/2 - 18, pigY + 215);
+        leg(W/2 + 16, pigY + 214);
+
+        // ===== 眼睛（手绘，保证能看到） =====
+        function drawEye(x, y, star) {
+            // 眼白
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.fill();
+            // 瞳孔
+            ctx.fillStyle = '#2a1018';
+            ctx.beginPath(); ctx.arc(x + 1, y, 6.5, 0, Math.PI * 2); ctx.fill();
+            // 高光
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(x - 2, y - 4, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 4, y + 2, 1.5, 0, Math.PI * 2); ctx.fill();
+            if (star) {
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px sans-serif';
+                ctx.fillText('✨', x - 6, y - 8);
+            }
+        }
+        const starEye = gameState === 'done' && doneTimer > 1.2;
+        drawEye(W/2 - 16, pigY + 18, starEye);
+        drawEye(W/2 + 18, pigY + 17, starEye);
+
+        // 嘴巴
+        ctx.strokeStyle = '#c45a6a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (gameState === 'done') {
+            ctx.arc(snX, snY + 10, 10, 0.2, Math.PI - 0.2);
+        } else if (progress > 60) {
+            ctx.arc(snX, snY + 10, 7, 0.3, Math.PI - 0.3);
+        } else {
+            ctx.arc(snX, snY + 18, 7, Math.PI + 0.3, -0.3);
+        }
+        ctx.stroke();
+
+        // 尾巴
+        ctx.strokeStyle = '#f7a8b8';
+        ctx.lineWidth = 3.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(W/2 + 65, pigY + 120);
+        ctx.quadraticCurveTo(W/2 + 88, pigY + 100, W/2 + 72, pigY + 82);
+        ctx.quadraticCurveTo(W/2 + 58, pigY + 74, W/2 + 55, pigY + 90);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    function drawMud() {
+        mud.forEach(s => {
+            if (s.cleaned >= 1) return;
+            const a = clamp(1 - s.cleaned, 0, 1);
+            const g = ctx.createRadialGradient(s.x, s.y, s.r * 0.2, s.x, s.y, s.r);
+            g.addColorStop(0, `rgba(90,55,35,${a * 0.9})`);
+            g.addColorStop(0.6, `rgba(75,45,28,${a * 0.7})`);
+            g.addColorStop(1, 'rgba(50,30,18,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+
+    function drawSponge() {
+        if (!onCanvas && !scrubbing) return;
+        ctx.save();
+        ctx.translate(sponge.x, sponge.y);
+        const sq = sponge.squish;
+        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        ctx.beginPath(); ctx.roundRect(-16 + sq * 3, -10 + sq * 2, 32 - sq * 6, 22 + sq * 3, 7); ctx.fill();
+        const g = ctx.createLinearGradient(0, -14, 0, 14 + sq);
+        g.addColorStop(0, '#ffe680'); g.addColorStop(0.4, '#ffd54f'); g.addColorStop(1, '#f0a830');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.roundRect(-15 + sq * 3, -11 + sq, 30 - sq * 6, 20 + sq * 2, 6); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.beginPath(); ctx.roundRect(-10 + sq * 2, -7 + sq, 14 - sq * 4, 6, 3); ctx.fill();
+        ctx.restore();
+    }
+
+    function drawProgress() {
+        const bw = 240, bh = 12, bx = (W - bw) / 2, by = 16;
+        ctx.fillStyle = 'rgba(0,0,0,0.06)'; ctx.beginPath(); ctx.roundRect(bx - 2, by - 2, bw + 4, bh + 4, 10); ctx.fill();
+        ctx.fillStyle = '#f5e8e0'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill();
+        const pw = (progress / 100) * bw;
+        if (pw > 0) {
+            const pg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+            pg.addColorStop(0, '#8dd4ec'); pg.addColorStop(0.5, '#5db8d8'); pg.addColorStop(1, '#a0ddf2');
+            ctx.fillStyle = pg;
+            ctx.beginPath(); ctx.roundRect(bx, by, pw, bh, 8); ctx.fill();
+        }
+        ctx.fillStyle = '#5a4030'; ctx.font = 'bold 10px "PingFang SC"'; ctx.textAlign = 'center';
+        ctx.fillText('干净 ' + Math.round(progress) + '%', W / 2, by + 10);
+    }
+
+    function drawUI() {
+        if (gameState !== 'done') return;
+        const a = clamp(doneTimer / 1.5, 0, 0.5);
+        ctx.fillStyle = `rgba(255,250,245,${a})`; ctx.fillRect(0, 0, W, H);
+        if (doneTimer > 0.8) {
+            const ta = clamp((doneTimer - 0.8) / 0.5, 0, 1);
+            ctx.fillStyle = `rgba(210,100,120,${ta})`;
+            ctx.font = 'bold 24px "PingFang SC"'; ctx.textAlign = 'center';
+            ctx.fillText('✨ 香香小猪 ✨', W / 2, H / 2 - 25);
+        }
+        if (doneTimer > 1.5) {
+            const ba = clamp((doneTimer - 1.5) / 0.4, 0, 1);
+            const rbx = W / 2 - 55, rby = H / 2 + 8, rbw = 110, rbh = 36;
+            ctx.fillStyle = `rgba(255,255,255,${ba * 0.9})`;
+            ctx.strokeStyle = `rgba(220,140,150,${ba})`; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.roundRect(rbx, rby, rbw, rbh, 18); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = `rgba(200,90,110,${ba})`;
+            ctx.font = 'bold 15px "PingFang SC"';
+            ctx.fillText('🔄 再洗一次', W / 2, rby + 25);
+        }
+    }
+
+    function spawnHeart(x, y) {
+        hearts.push({ x, y, vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 3, life: 1, decay: 0.01 + Math.random() * 0.02, size: 10 + Math.random() * 10 });
+    }
+
+    function gameLoop(ts) {
+        if (!gameLoop.last) gameLoop.last = ts;
+        let dt = (ts - gameLoop.last) / 1000;
+        if (dt > 0.15) dt = 0.15;
+        gameLoop.last = ts;
+
+        sponge.x = lerp(sponge.x, sponge.tx, 1 - Math.exp(-28 * dt));
+        sponge.y = lerp(sponge.y, sponge.ty, 1 - Math.exp(-28 * dt));
+        if (!scrubbing) sponge.squish = lerp(sponge.squish, 0, 1 - Math.exp(-12 * dt));
+
+        if (scrubbing && gameState === 'playing') {
+            sponge.squish = lerp(sponge.squish, 1, 1 - Math.exp(-20 * dt));
+            let any = false;
             mud.forEach(s => {
                 if (s.cleaned >= 1) return;
-                let a = clamp(1 - s.cleaned, 0, 1);
-                let g = ctx.createRadialGradient(s.x, s.y, s.r * 0.2, s.x, s.y, s.r);
-                g.addColorStop(0, `rgba(90,55,35,${a * 0.9})`);
-                g.addColorStop(0.6, `rgba(75,45,28,${a * 0.7})`);
-                g.addColorStop(1, 'rgba(50,30,18,0)');
-                ctx.fillStyle = g;
-                ctx.beginPath();
-                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-                ctx.fill();
+                const d = dist(sponge.x, sponge.y, s.x, s.y);
+                const overlap = 26 + s.r - d;
+                if (overlap > 0) {
+                    const eff = clamp(overlap / (s.r + 26), 0.2, 1);
+                    s.cleaned += eff * dt * 0.72;
+                    if (s.cleaned > 1) s.cleaned = 1;
+                    any = true;
+                    if (Math.random() < dt * 18 * eff) {
+                        bubbles.push({ x: s.x + (Math.random() - 0.5) * 20, y: s.y + (Math.random() - 0.5) * 20, r: 4 + Math.random() * 10, speed: 0.5 + Math.random() * 1.5, life: 1 });
+                    }
+                }
             });
+            if (any) shake = lerp(shake, 1.2, 1 - Math.exp(-18 * dt));
+        }
+        shake = lerp(shake, 0, 1 - Math.exp(-10 * dt));
+        if (shake < 0.03) shake = 0;
+
+        if (gameState === 'playing') {
+            const total = mud.reduce((a, s) => a + clamp(s.cleaned, 0, 1), 0);
+            progress = (total / mud.length) * 100;
+            if (progress >= 99.5) { progress = 100; gameState = 'done'; doneTimer = 0; mud.forEach(s => s.cleaned = 1); }
+        }
+        if (gameState === 'done') {
+            doneTimer += dt;
+            if (Math.random() < dt * 5 && doneTimer < 4) sparkles.push({ x: 120 + Math.random() * 160, y: 140 + Math.random() * 200, life: 1, r: 3 + Math.random() * 6 });
         }
 
-        function drawSponge() {
-            if (!onCanvas && !scrubbing) return;
-            ctx.save();
-            ctx.translate(sponge.x, sponge.y);
-            let sq = sponge.squish;
-            ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            ctx.beginPath();
-            ctx.roundRect(-16 + sq * 3, -10 + sq * 2, 32 - sq * 6, 22 + sq * 3, 7);
-            ctx.fill();
-            let g = ctx.createLinearGradient(0, -14, 0, 14 + sq);
-            g.addColorStop(0, '#ffe680');
-            g.addColorStop(0.4, '#ffd54f');
-            g.addColorStop(1, '#f0a830');
-            ctx.fillStyle = g;
-            ctx.beginPath();
-            ctx.roundRect(-15 + sq * 3, -11 + sq, 30 - sq * 6, 20 + sq * 2, 6);
-            ctx.fill();
-            ctx.fillStyle = 'rgba(255,255,255,0.35)';
-            ctx.beginPath();
-            ctx.roundRect(-10 + sq * 2, -7 + sq, 14 - sq * 4, 6, 3);
-            ctx.fill();
+        for (let i = bubbles.length - 1; i >= 0; i--) { bubbles[i].y -= bubbles[i].speed; bubbles[i].life -= dt * 0.4; if (bubbles[i].life <= 0 || bubbles[i].y < -30) bubbles.splice(i, 1); }
+        for (let i = sparkles.length - 1; i >= 0; i--) { sparkles[i].life -= dt * 0.8; sparkles[i].y -= dt * 30; if (sparkles[i].life <= 0) sparkles.splice(i, 1); }
+        for (let i = hearts.length - 1; i >= 0; i--) { hearts[i].x += hearts[i].vx; hearts[i].y += hearts[i].vy; hearts[i].vy += 0.08; hearts[i].life -= hearts[i].decay; if (hearts[i].life <= 0) hearts.splice(i, 1); }
+
+        // 绘制
+        ctx.clearRect(0, 0, W, H);
+        // 背景
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+        bgGrad.addColorStop(0, '#f0f4f8'); bgGrad.addColorStop(0.5, '#fef5f7'); bgGrad.addColorStop(1, '#fdf6f0');
+        ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
+
+        // 墙壁瓷砖装饰
+        ctx.strokeStyle = 'rgba(200,180,175,0.1)'; ctx.lineWidth = 1;
+        for (let x = 50; x < W; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H - 120); ctx.stroke(); }
+        for (let y = 40; y < H - 120; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+        drawTileFloor();
+        drawPiggy();
+        if (gameState === 'playing' || (gameState === 'done' && doneTimer < 1)) drawMud();
+
+        // 泡泡
+        bubbles.forEach(b => {
+            ctx.save(); ctx.globalAlpha = b.life * 0.7;
+            ctx.fillStyle = 'rgba(200,230,255,0.6)'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.3, 0, Math.PI * 2); ctx.fill();
             ctx.restore();
-        }
-
-        function drawWater() {
-            const cx = W / 2, wy = 365;
-            let g = ctx.createLinearGradient(0, wy - 6, 0, wy + 28);
-            g.addColorStop(0, 'rgba(160,210,235,0.6)');
-            g.addColorStop(0.7, 'rgba(130,190,220,0.7)');
-            g.addColorStop(1, 'rgba(100,170,200,0.5)');
-            ctx.fillStyle = g;
-            ctx.beginPath();
-            ctx.ellipse(cx, wy + 10, 135, 23, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-            ctx.lineWidth = 1.5;
-            for (let i = 0; i < 6; i++) {
-                ctx.beginPath();
-                let wx = cx - 80 + i * 32;
-                let wavy = wy + 3 + Math.sin(Date.now() / 1400 + i) * 3;
-                ctx.arc(wx, wavy, 5 + Math.random() * 10, 0, Math.PI);
-                ctx.stroke();
-            }
-        }
-
-        function drawUI() {
-            let bw = 240, bh = 12, bx = (W - bw) / 2, by = 20;
-            ctx.fillStyle = 'rgba(0,0,0,0.06)';
-            ctx.beginPath();
-            ctx.roundRect(bx - 2, by - 2, bw + 4, bh + 4, 10);
-            ctx.fill();
-            ctx.fillStyle = '#f5e8e0';
-            ctx.beginPath();
-            ctx.roundRect(bx, by, bw, bh, 8);
-            ctx.fill();
-            let pw = (progress / 100) * bw;
-            if (pw > 0) {
-                let pg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
-                pg.addColorStop(0, '#8dd4ec');
-                pg.addColorStop(0.5, '#5db8d8');
-                pg.addColorStop(1, '#a0ddf2');
-                ctx.fillStyle = pg;
-                ctx.beginPath();
-                ctx.roundRect(bx, by, pw, bh, 8);
-                ctx.fill();
-            }
-            ctx.fillStyle = '#5a4030';
-            ctx.font = 'bold 10px "PingFang SC"';
-            ctx.textAlign = 'center';
-            ctx.fillText('干净 ' + Math.round(progress) + '%', W / 2, by + 10);
-
-            if (gameState === 'done') {
-                let a = clamp(doneTimer / 1.5, 0, 0.5);
-                ctx.fillStyle = `rgba(255,250,245,${a})`;
-                ctx.fillRect(0, 0, W, H);
-                if (doneTimer > 0.8) {
-                    let ta = clamp((doneTimer - 0.8) / 0.5, 0, 1);
-                    ctx.fillStyle = `rgba(210,100,120,${ta})`;
-                    ctx.font = 'bold 24px "PingFang SC"';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('✨ 香香小猪 ✨', W / 2, H / 2 - 30);
-                }
-                if (doneTimer > 1.5) {
-                    let ba = clamp((doneTimer - 1.5) / 0.4, 0, 1);
-                    let rbx = W / 2 - 55, rby = H / 2 + 5, rbw = 110, rbh = 36;
-                    ctx.fillStyle = `rgba(255,255,255,${ba * 0.9})`;
-                    ctx.strokeStyle = `rgba(220,140,150,${ba})`;
-                    ctx.lineWidth = 2.5;
-                    ctx.beginPath();
-                    ctx.roundRect(rbx, rby, rbw, rbh, 18);
-                    ctx.fill();
-                    ctx.stroke();
-                    ctx.fillStyle = `rgba(200,90,110,${ba})`;
-                    ctx.font = 'bold 15px "PingFang SC"';
-                    ctx.fillText('🔄 再洗一次', W / 2, rby + 25);
-                }
-            }
-        }
-
-        function spawnHeart(x, y) {
-            hearts.push({
-                x: x, y: y, vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 3,
-                life: 1, decay: 0.01 + Math.random() * 0.02, size: 10 + Math.random() * 10
-            });
-        }
-
-        function gameLoop(ts) {
-            if (!gameLoop.last) gameLoop.last = ts;
-            let dt = (ts - gameLoop.last) / 1000;
-            if (dt > 0.15) dt = 0.15;
-            gameLoop.last = ts;
-
-            sponge.x = lerp(sponge.x, sponge.tx, 1 - Math.exp(-28 * dt));
-            sponge.y = lerp(sponge.y, sponge.ty, 1 - Math.exp(-28 * dt));
-            if (!scrubbing) sponge.squish = lerp(sponge.squish, 0, 1 - Math.exp(-12 * dt));
-
-            if (scrubbing && gameState === 'playing') {
-                sponge.squish = lerp(sponge.squish, 1, 1 - Math.exp(-20 * dt));
-                let any = false;
-                mud.forEach(s => {
-                    if (s.cleaned >= 1) return;
-                    let d = dist(sponge.x, sponge.y, s.x, s.y);
-                    let overlap = 26 + s.r - d;
-                    if (overlap > 0) {
-                        let eff = clamp(overlap / (s.r + 26), 0.2, 1);
-                        s.cleaned += eff * dt * 0.72;
-                        if (s.cleaned > 1) s.cleaned = 1;
-                        any = true;
-                        if (Math.random() < dt * 18 * eff) {
-                            bubbles.push({
-                                x: s.x + (Math.random() - 0.5) * 20,
-                                y: s.y + (Math.random() - 0.5) * 20,
-                                r: 4 + Math.random() * 10,
-                                speed: 0.5 + Math.random() * 1.5,
-                                life: 1
-                            });
-                        }
-                    }
-                });
-                if (any) shake = lerp(shake, 1.2, 1 - Math.exp(-18 * dt));
-            }
-            shake = lerp(shake, 0, 1 - Math.exp(-10 * dt));
-            if (shake < 0.03) shake = 0;
-
-            if (gameState === 'playing') {
-                let total = mud.reduce((a, s) => a + clamp(s.cleaned, 0, 1), 0);
-                progress = (total / mud.length) * 100;
-                if (progress >= 99.5) {
-                    progress = 100;
-                    gameState = 'done';
-                    doneTimer = 0;
-                    mud.forEach(s => s.cleaned = 1);
-                }
-            }
-
-            if (gameState === 'done') {
-                doneTimer += dt;
-                if (Math.random() < dt * 5 && doneTimer < 4) {
-                    sparkles.push({
-                        x: 120 + Math.random() * 160,
-                        y: 160 + Math.random() * 140,
-                        life: 1,
-                        r: 3 + Math.random() * 6
-                    });
-                }
-            }
-
-            for (let i = bubbles.length - 1; i >= 0; i--) {
-                bubbles[i].y -= bubbles[i].speed;
-                bubbles[i].life -= dt * 0.4;
-                if (bubbles[i].life <= 0 || bubbles[i].y < -30) bubbles.splice(i, 1);
-            }
-            for (let i = sparkles.length - 1; i >= 0; i--) {
-                sparkles[i].life -= dt * 0.8;
-                sparkles[i].y -= dt * 30;
-                if (sparkles[i].life <= 0) sparkles.splice(i, 1);
-            }
-            for (let i = hearts.length - 1; i >= 0; i--) {
-                hearts[i].x += hearts[i].vx;
-                hearts[i].y += hearts[i].vy;
-                hearts[i].vy += 0.08;
-                hearts[i].life -= hearts[i].decay;
-                if (hearts[i].life <= 0) hearts.splice(i, 1);
-            }
-
-            // 绘制
-            ctx.clearRect(0, 0, W, H);
-            ctx.fillStyle = '#fef5f7';
-            ctx.fillRect(0, 0, W, H);
-
-            // 浴缸
-            const cx = W / 2;
-            ctx.fillStyle = 'rgba(180,150,150,0.15)';
-            ctx.beginPath();
-            ctx.ellipse(cx, 515, 148, 26, 0, 0, Math.PI * 2);
-            ctx.fill();
-            let tubG = ctx.createLinearGradient(cx, 350, cx, 525);
-            tubG.addColorStop(0, '#fffaf7');
-            tubG.addColorStop(0.6, '#f3e8e4');
-            tubG.addColorStop(1, '#e2d3ce');
-            ctx.fillStyle = tubG;
-            ctx.beginPath();
-            ctx.moveTo(cx - 142, 350);
-            ctx.quadraticCurveTo(cx - 152, 510, cx - 128, 520);
-            ctx.quadraticCurveTo(cx, 528, cx + 128, 520);
-            ctx.quadraticCurveTo(cx + 152, 510, cx + 142, 350);
-            ctx.quadraticCurveTo(cx + 147, 338, cx + 132, 344);
-            ctx.lineTo(cx - 132, 344);
-            ctx.quadraticCurveTo(cx - 147, 338, cx - 142, 350);
-            ctx.fill();
-            ctx.fillStyle = '#ede3df';
-            ctx.beginPath();
-            ctx.ellipse(cx, 360, 135, 21, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            drawPig();
-            if (gameState === 'playing' || (gameState === 'done' && doneTimer < 1)) drawMud();
-            drawWater();
-
-            bubbles.forEach(b => {
-                ctx.save();
-                ctx.globalAlpha = b.life * 0.7;
-                ctx.fillStyle = 'rgba(200,230,255,0.6)';
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                ctx.beginPath();
-                ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.3, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            });
-
-            sparkles.forEach(s => {
-                ctx.fillStyle = `rgba(255,220,100,${s.life})`;
-                ctx.font = `${s.r * 3}px sans-serif`;
-                ctx.fillText('✨', s.x - s.r, s.y);
-            });
-
-            hearts.forEach(h => {
-                ctx.save();
-                ctx.globalAlpha = h.life;
-                ctx.fillStyle = '#ff6b8a';
-                ctx.font = `${h.size}px sans-serif`;
-                ctx.fillText('❤️', h.x - h.size/2, h.y + h.size/2);
-                ctx.restore();
-            });
-
-            drawSponge();
-            drawUI();
-
-            requestAnimationFrame(gameLoop);
-        }
-        gameLoop.last = 0;
-
-        function pos(e) {
-            let r = canvas.getBoundingClientRect();
-            return {
-                x: (e.clientX - r.left) * (W / r.width),
-                y: (e.clientY - r.top) * (H / r.height)
-            };
-        }
-
-        canvas.addEventListener('mousedown', e => {
-            e.preventDefault();
-            let p = pos(e);
-            sponge.tx = p.x;
-            sponge.ty = p.y;
-            sponge.x = p.x;
-            sponge.y = p.y;
-            scrubbing = true;
-            onCanvas = true;
-            if (gameState === 'done') {
-                // 点击小猪脸附近弹出爱心
-                if (p.x > 130 && p.x < 270 && p.y > 180 && p.y < 340) {
-                    for (let i = 0; i < 5; i++) spawnHeart(p.x, p.y);
-                }
-                if (doneTimer > 1.5) {
-                    let rbx = W / 2 - 55, rby = H / 2 + 5, rbw = 110, rbh = 36;
-                    if (p.x > rbx && p.x < rbx + rbw && p.y > rby && p.y < rby + rbh) {
-                        progress = 0;
-                        gameState = 'playing';
-                        doneTimer = 0;
-                        mud.forEach(s => s.cleaned = 0);
-                        bubbles = [];
-                        sparkles = [];
-                        hearts = [];
-                        return;
-                    }
-                }
-            }
         });
-        canvas.addEventListener('mousemove', e => {
-            e.preventDefault();
-            let p = pos(e);
-            sponge.tx = p.x;
-            sponge.ty = p.y;
-            onCanvas = true;
-        });
-        canvas.addEventListener('mouseup', e => { e.preventDefault(); scrubbing = false; sponge.squish = 0; });
-        canvas.addEventListener('mouseleave', () => { onCanvas = false; scrubbing = false; sponge.squish = 0; });
-        canvas.addEventListener('touchstart', e => {
-            e.preventDefault();
-            let t = e.touches[0];
-            let p = pos(t);
-            sponge.tx = p.x;
-            sponge.ty = p.y;
-            sponge.x = p.x;
-            sponge.y = p.y;
-            scrubbing = true;
-            onCanvas = true;
-            if (gameState === 'done') {
-                if (p.x > 130 && p.x < 270 && p.y > 180 && p.y < 340) {
-                    for (let i = 0; i < 5; i++) spawnHeart(p.x, p.y);
-                }
-                if (doneTimer > 1.5) {
-                    let rbx = W / 2 - 55, rby = H / 2 + 5, rbw = 110, rbh = 36;
-                    if (p.x > rbx && p.x < rbx + rbw && p.y > rby && p.y < rby + rbh) {
-                        progress = 0;
-                        gameState = 'playing';
-                        doneTimer = 0;
-                        mud.forEach(s => s.cleaned = 0);
-                        bubbles = [];
-                        sparkles = [];
-                        hearts = [];
-                        return;
-                    }
-                }
-            }
-        }, { passive: false });
-        canvas.addEventListener('touchmove', e => {
-            e.preventDefault();
-            let p = pos(e.touches[0]);
-            sponge.tx = p.x;
-            sponge.ty = p.y;
-            onCanvas = true;
-        }, { passive: false });
-        canvas.addEventListener('touchend', e => { e.preventDefault(); scrubbing = false; sponge.squish = 0; });
+        sparkles.forEach(s => { ctx.fillStyle = `rgba(255,220,100,${s.life})`; ctx.font = `${s.r * 3}px sans-serif`; ctx.fillText('✨', s.x - s.r, s.y); });
+        hearts.forEach(h => { ctx.save(); ctx.globalAlpha = h.life; ctx.fillStyle = '#ff6b8a'; ctx.font = `${h.size}px sans-serif`; ctx.fillText('❤️', h.x - h.size / 2, h.y + h.size / 2); ctx.restore(); });
 
+        drawSponge();
+        drawProgress();
+        drawUI();
         requestAnimationFrame(gameLoop);
-    </script>
+    }
+    gameLoop.last = 0;
+
+    function pos(e) { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) }; }
+
+    function handleDown(p) {
+        sponge.tx = p.x; sponge.ty = p.y; sponge.x = p.x; sponge.y = p.y;
+        scrubbing = true; onCanvas = true;
+        if (gameState === 'done') {
+            if (p.x > 120 && p.x < 280 && p.y > 130 && p.y < 380) { for (let i = 0; i < 6; i++) spawnHeart(p.x, p.y); }
+            if (doneTimer > 1.5) {
+                const rbx = W / 2 - 55, rby = H / 2 + 8, rbw = 110, rbh = 36;
+                if (p.x > rbx && p.x < rbx + rbw && p.y > rby && p.y < rby + rbh) {
+                    progress = 0; gameState = 'playing'; doneTimer = 0;
+                    mud.forEach(s => s.cleaned = 0); bubbles = []; sparkles = []; hearts = [];
+                    return;
+                }
+            }
+        }
+    }
+
+    canvas.addEventListener('mousedown', e => { e.preventDefault(); handleDown(pos(e)); });
+    canvas.addEventListener('mousemove', e => { e.preventDefault(); const p = pos(e); sponge.tx = p.x; sponge.ty = p.y; onCanvas = true; });
+    canvas.addEventListener('mouseup', e => { e.preventDefault(); scrubbing = false; sponge.squish = 0; });
+    canvas.addEventListener('mouseleave', () => { onCanvas = false; scrubbing = false; sponge.squish = 0; });
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); handleDown(pos(e.touches[0])); }, { passive: false });
+    canvas.addEventListener('touchmove', e => { e.preventDefault(); const p = pos(e.touches[0]); sponge.tx = p.x; sponge.ty = p.y; onCanvas = true; }, { passive: false });
+    canvas.addEventListener('touchend', e => { e.preventDefault(); scrubbing = false; sponge.squish = 0; });
+
+    requestAnimationFrame(gameLoop);
+</script>
 </body>
 </html>
