@@ -1,1467 +1,782 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🐷 给小猪洗澡</title>
+    <style>
+        :root {
+            --bg-top: #e8f4f8;
+            --bg-mid: #fce4ec;
+            --bg-bot: #fff8e1;
+            --title-color: #d4687c;
+            --hint-color: #b08a7a;
+            --shadow-color: rgba(180, 140, 150, 0.25);
+        }
 
-<meta charset="UTF-8">
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+        body {
+            background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 60%, var(--bg-bot) 100%);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+            padding: 12px;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+        }
 
-<title>小猪洗澡澡</title>
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            max-width: 420px;
+            width: 100%;
+        }
 
+        .title {
+            font-size: clamp(1.3rem, 4vw, 1.6rem);
+            font-weight: 700;
+            color: var(--title-color);
+            letter-spacing: 0.06em;
+            text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.6);
+            animation: titleFloat 3s ease-in-out infinite;
+        }
 
-<style>
+        @keyframes titleFloat {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-4px);
+            }
+        }
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+        .canvas-container {
+            position: relative;
+            border-radius: 28px;
+            box-shadow:
+                0 20px 40px var(--shadow-color),
+                0 4px 12px rgba(0, 0, 0, 0.05),
+                inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+            overflow: hidden;
+            background: #fef9fb;
+            width: 100%;
+            aspect-ratio: 400 / 520;
+            max-height: 75vh;
+            max-height: 75dvh;
+            transition: transform 0.15s ease;
+        }
 
+        .canvas-container:active {
+            transform: scale(0.995);
+        }
 
-body{
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: none;
+            touch-action: none;
+        }
 
-    background:#fff6fb;
+        .hint {
+            color: var(--hint-color);
+            font-size: 0.82rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            padding: 6px 18px;
+            border-radius: 22px;
+            letter-spacing: 0.03em;
+        }
 
-    overflow:hidden;
+        .hint .pulse {
+            display: inline-block;
+            animation: hintPulse 1.5s ease-in-out infinite;
+        }
 
-    font-family:
-    "Arial",
-    "Microsoft YaHei",
-    sans-serif;
-
-}
-
-
-canvas{
-
-    display:block;
-
-    margin:auto;
-
-    background:
-    linear-gradient(
-    #ffeef7,
-    #dff8ff
-    );
-
-}
-
-
-
-#tip{
-
-position:absolute;
-
-top:15px;
-
-left:50%;
-
-transform:translateX(-50%);
-
-font-size:20px;
-
-color:#ff8db8;
-
-font-weight:bold;
-
-}
-
-
-</style>
-
-
+        @keyframes hintPulse {
+            0%,
+            100% {
+                opacity: 0.5;
+                transform: scale(0.9);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.15);
+            }
+        }
+    </style>
 </head>
-
-
-
 <body>
+    <div class="game-wrapper">
+        <div class="title">🐷 给小猪洗澡 🫧</div>
+        <div class="canvas-container">
+            <canvas id="c" width="400" height="520" aria-label="给小猪洗澡互动游戏"></canvas>
+        </div>
+        <div class="hint">
+            <span class="pulse">✨</span> 按住擦洗泥巴 · 洗完点击小猪弹出爱心 <span class="pulse">✨</span>
+        </div>
+    </div>
 
+    <script>
+        (function() {
+            const canvas = document.getElementById('c');
+            const ctx = canvas.getContext('2d');
+            const W = 400;
+            const H = 520;
 
-<div id="tip">
-🧽 帮小猪洗干净吧！
-</div>
+            // ============ 加载你的 PNG 小猪图片 ============
+           const pigImg = new Image();
 
+// 你的 GitHub 同目录图片
+pigImg.src = 'pig2.png';
 
-<canvas id="game"></canvas>
+let pigLoaded = false;
 
-
-
-<script>
-
-
-// ==========================
-// Canvas
-// ==========================
-
-
-const canvas =
-document.getElementById("game");
-
-
-const ctx =
-canvas.getContext("2d");
-
-
-
-let W =
-canvas.width =
-window.innerWidth;
-
-
-let H =
-canvas.height =
-window.innerHeight;
-
-
-
-window.onresize=function(){
-
-W=canvas.width=
-window.innerWidth;
-
-
-H=canvas.height=
-window.innerHeight;
-
+pigImg.onload = function(){
+    pigLoaded = true;
+    console.log("小猪加载成功");
 };
 
-
-
-
-// ==========================
-// 小猪图片
-// ==========================
-
-
-const pigImg =
-new Image();
-
-
-pigImg.src =
-"pig.png";
-
-
-
-let pigLoaded=false;
-
-
-
-pigImg.onload=function(){
-
-    pigLoaded=true;
-
-    console.log(
-    "小猪加载成功"
-    );
-
+pigImg.onerror = function(){
+    console.log("小猪加载失败");
 };
-
-
-
-pigImg.onerror=function(){
-
-    console.log(
-    "小猪加载失败"
-    );
-
-};
-
-
-
-// ==========================
-// 小猪位置
-// ==========================
-
-
-let pig={
-
-x:W/2-120,
-
-y:H/2-120,
-
-w:240,
-
-h:240
-
-};
-
-
-
-// ==========================
-// 小猪动画状态
-// ==========================
-
-
-let pigBounce=0;
-
-
-let pigTilt=0;
-
-
-let pigBlink=0;
-
-
-let earShake=0;
-
-
-
-// ==========================
-// 泥巴
-// ==========================
-
-
-let dirt=100;
-
-
-
-// ==========================
-// 海绵
-// ==========================
-
-
-let sponge={
-
-x:100,
-
-y:H-160,
-
-size:70,
-
-drag:false
-
-};
-
-
-
-// ==========================
-// 爱心
-// ==========================
-
-
-let hearts=[];
-
-
-
-// ==========================
-// 水滴
-// ==========================
-
-
-let drops=[];
-
-
-
-// ==========================
-// 鼠标位置
-// ==========================
-
-
-let mouse={
-
-x:0,
-
-y:0
-
-};
-
-
-
-canvas.addEventListener(
-"mousemove",
-e=>{
-
-mouse.x=e.clientX;
-
-mouse.y=e.clientY;
-
-
-if(sponge.drag){
-
-sponge.x=
-mouse.x-sponge.size/2;
-
-
-sponge.y=
-mouse.y-sponge.size/2;
-
-}
-
-
-}
-);
-
-
-
-
-// ==========================
-// 绘制背景泡泡
-// ==========================
-
-
-function drawBackground(){
-
-
-    // 小泡泡
-
-    for(let i=0;i<15;i++){
-
-
-        let x =
-        (i*97)%W;
-
-
-        let y =
-        (i*53)%H;
-
-
-        ctx.beginPath();
-
-        ctx.arc(
-            x,
-            y,
-            8+i%6,
-            0,
-            Math.PI*2
-        );
-
-
-        ctx.fillStyle=
-        "rgba(255,255,255,0.45)";
-
-
-        ctx.fill();
-
-    }
-
-
-}
-
-
-
-
-// ==========================
-// 绘制小猪
-// ==========================
-
-
-function drawPig(){
-
-
-
-if(!pigLoaded){
-
-    // 图片没加载时提示
-
-    ctx.fillStyle="#ffb6d9";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        pig.x+pig.w/2,
-        pig.y+pig.h/2,
-        80,
-        0,
-        Math.PI*2
-    );
-
-    ctx.fill();
-
-    return;
-
-}
-
-
-
-
-
-ctx.save();
-
-
-
-// 弹跳效果
-
-let scaleX =
-1 - pigBounce*0.015;
-
-
-let scaleY =
-1 + pigBounce*0.03;
-
-
-
-// 耳朵抖动
+            // ============ 游戏状态 ============
+            let progress = 0;
+            let gameState = 'playing'; // 'playing' | 'done'
+            let doneTimer = 0;
+            // 小猪互动动画
+
+let pigBounce = 0;
+let pigBlink = 0;
+let blinkTimer = 0;
+            let spongeSquish = 0;
+            let isScrubbing = false;
+            let isPointerOnCanvas = false;
+
+            const sponge = { x: W / 2, y: H / 2, tx: W / 2, ty: W / 2 };
+
+            let mudSpots = [];
+            let bubbles = [];
+            let sparkles = [];
+            let hearts = [];
+
+            // ============ 初始化 ============
+            function initMudSpots() {
+                mudSpots = [];
+                for (let i = 0; i < 14; i++) {
+                    mudSpots.push({
+                        x: 120 + Math.random() * 160,
+                        y: 140 + Math.random() * 230,
+                        r: 8 + Math.random() * 15,
+                        cleaned: 0,
+                        maxClean: 1,
+                    });
+                }
+            }
+
+            function resetGame() {
+                progress = 0;
+                gameState = 'playing';
+                doneTimer = 0;
+                shakeAmount = 0;
+                spongeSquish = 0;
+                isScrubbing = false;
+                sponge.x = W / 2;
+                sponge.y = H / 2;
+                sponge.tx = W / 2;
+                sponge.ty = H / 2;
+                initMudSpots();
+                bubbles = [];
+                sparkles = [];
+                hearts = [];
+            }
+
+            // ============ 工具函数 ============
+            function dist(x1, y1, x2, y2) { return Math.hypot(x1 - x2, y1 - y2); }
+
+            function lerp(a, b, t) { return a + (b - a) * t; }
+
+            function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+            function rand(min, max) { return min + Math.random() * (max - min); }
+
+            // ============ roundRect Polyfill ============
+            if (!ctx.roundRect) {
+                ctx.roundRect = function(x, y, w, h, r) {
+                    if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
+                    if (!r) r = { tl: 0, tr: 0, br: 0, bl: 0 };
+                    ctx.beginPath();
+                    ctx.moveTo(x + r.tl, y);
+                    ctx.lineTo(x + w - r.tr, y);
+                    ctx.quadraticCurveTo(x + w, y, x + w, y + r.tr);
+                    ctx.lineTo(x + w, y + h - r.br);
+                    ctx.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
+                    ctx.lineTo(x + r.bl, y + h);
+                    ctx.quadraticCurveTo(x, y + h, x, y + h - r.bl);
+                    ctx.lineTo(x, y + r.tl);
+                    ctx.quadraticCurveTo(x, y, x + r.tl, y);
+                    ctx.closePath();
+                };
+            }
+
+            // ============ 绘制函数 ============
+            function drawBackground() {
+                const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+                bgGrad.addColorStop(0, '#f0f4f8');
+                bgGrad.addColorStop(0.5, '#fef5f7');
+                bgGrad.addColorStop(1, '#fdf6f0');
+                ctx.fillStyle = bgGrad;
+                ctx.fillRect(0, 0, W, H);
+
+                ctx.strokeStyle = 'rgba(200,180,175,0.1)';
+                ctx.lineWidth = 1;
+                for (let x = 50; x < W; x += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, H - 110);
+                    ctx.stroke();
+                }
+                for (let y = 40; y < H - 110; y += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(W, y);
+                    ctx.stroke();
+                }
+            }
+
+            function drawTileFloor() {
+                const tileW = 58;
+                const tileH = 55;
+                const cols = 7;
+                const rows = 2;
+                const startX = (W - cols * tileW) / 2;
+                const startY = H - rows * tileH;
+
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        const x = startX + col * tileW;
+                        const y = startY + row * tileH;
+                        const hue = 25 + (row + col) * 4;
+
+                        ctx.fillStyle = `hsl(${hue}, 30%, 87%)`;
+                        ctx.beginPath();
+                        ctx.roundRect(x + 2, y + 2, tileW - 4, tileH - 4, 8);
+                        ctx.fill();
+
+                        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.roundRect(x + 2, y + 2, tileW - 4, tileH - 4, 8);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(200,170,155,0.2)';
+                        ctx.beginPath();
+                        ctx.arc(x + tileW / 2, y + tileH / 2, 3.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+
+            function drawPiggy() {
+                ctx.save();
+                const sx = shakeAmount * (Math.random() - 0.5) * 2;
+
+const sy = shakeAmount * (Math.random() - 0.5) * 2;
+
+const bounce = Math.sin(Date.now()/80) * pigBounce;
 
 ctx.translate(
-pig.x+pig.w/2,
-pig.y+pig.h/2
+    sx,
+    sy - bounce
 );
+                const pigW = 200;
+                const pigH = 240;
+                const pigX = W / 2 - pigW / 2;
+                const pigY = 130;
 
+                if (pigImg.complete && pigImg.naturalWidth > 0) {
+                    ctx.drawImage(pigImg, pigX, pigY, pigW, pigH);
+                    // 眨眼
 
+if(pigBlink > 0){
 
-ctx.rotate(
-pigTilt
-);
-
-
-
-ctx.scale(
-scaleX,
-scaleY
-);
-
-
-
-
-// 画小猪
-
-
-ctx.drawImage(
-
-pigImg,
-
--pig.w/2,
-
--pig.h/2,
-
-pig.w,
-
-pig.h
-
-);
-
-
-
-ctx.restore();
-
-
-
-
-
-// 洗澡泥巴层
-
-
-if(dirt>0){
-
-
-    ctx.save();
-
-
-    ctx.globalAlpha =
-    dirt/100;
-
-
-
-    ctx.fillStyle =
-    "rgba(120,80,45,0.35)";
-
-
-
-    ctx.beginPath();
-
-
-    ctx.ellipse(
-
-    pig.x+pig.w*0.5,
-
-    pig.y+pig.h*0.35,
-
-    pig.w*0.42,
-
-    pig.h*0.25,
-
-    0,
-
-    0,
-
-    Math.PI*2
-
-    );
-
-
-    ctx.fill();
-
-
-
-    ctx.restore();
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-// ==========================
-// 绘制海绵
-// ==========================
-
-
-function drawSponge(){
-
-
-
-ctx.save();
-
-
-
-ctx.fillStyle="#ffd34d";
-
+ctx.fillStyle="rgba(40,30,30,0.8)";
 
 ctx.beginPath();
 
-
-ctx.arc(
-
-sponge.x+sponge.size/2,
-
-sponge.y+sponge.size/2,
-
-sponge.size/2,
-
+ctx.ellipse(
+pigX+65,
+pigY+105,
+12,
+3,
 0,
-
+0,
 Math.PI*2
-
 );
-
-
 
 ctx.fill();
 
 
-
-
-ctx.fillStyle="#fff";
-
-
-ctx.font="35px Arial";
-
-
-ctx.fillText(
-
-"🧽",
-
-sponge.x+10,
-
-sponge.y+45
-
-);
-
-
-
-ctx.restore();
-
-
-}
-
-
-
-
-
-// ==========================
-// 爱心动画
-// ==========================
-
-
-function createHeart(x,y){
-
-
-hearts.push({
-
-x:x,
-
-y:y,
-
-life:60
-
-});
-
-
-}
-
-
-
-function drawHearts(){
-
-
-
-for(
-let i=hearts.length-1;
-i>=0;
-i--
-){
-
-
-let h=hearts[i];
-
-
-ctx.font="30px Arial";
-
-
-ctx.fillText(
-
-"❤️",
-
-h.x,
-
-h.y
-
-);
-
-
-
-h.y-=1;
-
-
-
-h.life--;
-
-
-
-if(h.life<=0){
-
-hearts.splice(i,1);
-
-}
-
-
-}
-
-
-
-}
-
-
-
-
-
-// ==========================
-// 水滴动画
-// ==========================
-
-
-function createDrop(x,y){
-
-
-drops.push({
-
-x:x,
-
-y:y,
-
-speed:2+Math.random()*2
-
-});
-
-
-}
-
-
-
-
-
-function drawDrops(){
-
-
-
-for(
-let i=drops.length-1;
-i>=0;
-i--
-){
-
-
-let d=drops[i];
-
-
-
-ctx.fillStyle=
-"#8edcff";
-
-
 ctx.beginPath();
 
-
-ctx.arc(
-
-d.x,
-
-d.y,
-
-5,
-
+ctx.ellipse(
+pigX+135,
+pigY+105,
+12,
+3,
 0,
-
+0,
 Math.PI*2
-
 );
-
-
 
 ctx.fill();
 
-
-
-d.y+=d.speed;
-
-
-
-if(d.y>H){
-
-drops.splice(i,1);
-
 }
 
+                else {
 
-
-}
-
-
-}
-
-
-
-
-
-
-// ==========================
-// 擦洗检测
-// ==========================
-
-
-function washCheck(){
-
-
-
-if(!sponge.drag)
 return;
 
-
-
-let sx=
-sponge.x+sponge.size/2;
-
-
-let sy=
-sponge.y+sponge.size/2;
-
-
-
-let px=
-pig.x+pig.w/2;
-
-
-let py=
-pig.y+pig.h/2;
-
-
-
-
-let distance=
-Math.sqrt(
-
-(sx-px)*(sx-px)
-
-+
-
-(sy-py)*(sy-py)
-
-);
-
-
-
-
-if(distance<150 && dirt>0){
-
-
-
-dirt-=0.5;
-
-
-
-createDrop(
-sx,
-sy
-);
-
-
-
 }
-
-
-
-if(dirt<0){
-
-dirt=0;
-
-}
-
-
-
-}
-// ==========================
-// 小猪互动
-// ==========================
-
-
-
-function touchPig(x,y){
-
-
-
-if(
-
-x>pig.x &&
-
-x<pig.x+pig.w &&
-
-y>pig.y &&
-
-y<pig.y+pig.h
-
-){
-
-
-
-// 弹一下
-
-pigBounce=12;
-
-
-
-// 耳朵抖
-
-earShake=20;
-
-
-
-// 开心爱心
-
-createHeart(
-
-pig.x+pig.w/2,
-
-pig.y
-
-);
-
-
-
-}
-
-
-
-}
-
-
-
-
-
-// ==========================
-// 自动眨眼
-// ==========================
-
-
-let blinkTime=0;
-
-
-
-function updateBlink(){
-
-
-
-blinkTime++;
-
-
-
-// 每隔一段时间眨眼
-
-
-if(blinkTime>180){
-
-
-pigBlink=15;
-
-
-blinkTime=0;
-
-
-}
-
-
-
-if(pigBlink>0){
-
-
-pigBlink--;
-
-}
-
-
-
-}
-
-
-
-
-
-// ==========================
-// 绘制眨眼效果
-// ==========================
-
-
-function drawBlink(){
-
-
-
-if(pigBlink<=0)
-return;
-
-
-
-ctx.save();
-
-
-
-ctx.strokeStyle="#333";
-
-ctx.lineWidth=5;
-
-
-
-// 左眼
-
-ctx.beginPath();
-
-
-ctx.moveTo(
-
-pig.x+pig.w*0.32,
-
-pig.y+pig.h*0.40
-
-);
-
-
-ctx.lineTo(
-
-pig.x+pig.w*0.40,
-
-pig.y+pig.h*0.40
-
-);
-
-
-ctx.stroke();
-
-
-
-// 右眼
-
-ctx.beginPath();
-
-
-ctx.moveTo(
-
-pig.x+pig.w*0.60,
-
-pig.y+pig.h*0.40
-
-);
-
-
-ctx.lineTo(
-
-pig.x+pig.w*0.68,
-
-pig.y+pig.h*0.40
-
-);
-
-
-ctx.stroke();
-
-
-
-ctx.restore();
-
-
-
-}
-
-
-
-
-
-// ==========================
-// 小猪弹性更新
-// ==========================
-
-
-function updatePig(){
-
-
-
-// 弹回来
-
+                    ctx.fillStyle = '#ffd2da';
+                    ctx.beginPath();
+                    ctx.ellipse(W / 2, pigY + pigH / 2, pigW / 2, pigH / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '14px "PingFang SC", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🐷 加载中...', W / 2, pigY + pigH / 2 + 5);
+                }
+
+                ctx.restore();
+            }
+
+            function drawMud() {
+                mudSpots.forEach(spot => {
+                    if (spot.cleaned >= spot.maxClean) return;
+                    const alpha = clamp(1 - spot.cleaned / spot.maxClean, 0, 1);
+                    const grad = ctx.createRadialGradient(spot.x, spot.y, spot.r * 0.2, spot.x, spot.y, spot.r);
+                    grad.addColorStop(0, `rgba(90,55,35,${alpha * 0.9})`);
+                    grad.addColorStop(0.6, `rgba(75,45,28,${alpha * 0.7})`);
+                    grad.addColorStop(1, 'rgba(50,30,18,0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(spot.x, spot.y, spot.r, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+
+            function drawSponge() {
+                if (!isPointerOnCanvas && !isScrubbing) {
+                    const alpha = 0.15 + Math.sin(Date.now() / 800) * 0.08;
+                    ctx.save();
+                    ctx.globalAlpha = alpha;
+                    ctx.strokeStyle = '#ffb6c1';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.arc(sponge.x, sponge.y, 24, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.restore();
+                    return;
+                }
+
+                ctx.save();
+                ctx.translate(sponge.x, sponge.y);
+                const sq = spongeSquish;
+
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                ctx.beginPath();
+                ctx.roundRect(-16 + sq * 3, -10 + sq * 2, 32 - sq * 6, 22 + sq * 3, 7);
+                ctx.fill();
+
+                const spongeGrad = ctx.createLinearGradient(0, -14, 0, 14 + sq);
+                spongeGrad.addColorStop(0, '#ffe680');
+                spongeGrad.addColorStop(0.4, '#ffd54f');
+                spongeGrad.addColorStop(1, '#f0a830');
+                ctx.fillStyle = spongeGrad;
+                ctx.beginPath();
+                ctx.roundRect(-15 + sq * 3, -11 + sq, 30 - sq * 6, 20 + sq * 2, 6);
+                ctx.fill();
+
+                ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                ctx.beginPath();
+                ctx.roundRect(-10 + sq * 2, -7 + sq, 14 - sq * 4, 6, 3);
+                ctx.fill();
+
+                if (isScrubbing && spongeSquish > 0.3) {
+                    ctx.fillStyle = 'rgba(180,210,240,0.7)';
+                    for (let i = 0; i < 3; i++) {
+                        ctx.beginPath();
+                        ctx.arc(rand(-12, 12), rand(8, 16), rand(1.5, 3), 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                ctx.restore();
+            }
+
+            function drawProgressBar() {
+                const bw = 240;
+                const bh = 12;
+                const bx = (W - bw) / 2;
+                const by = 16;
+
+                ctx.fillStyle = 'rgba(0,0,0,0.06)';
+                ctx.beginPath();
+                ctx.roundRect(bx - 2, by - 2, bw + 4, bh + 4, 10);
+                ctx.fill();
+
+                ctx.fillStyle = '#f5e8e0';
+                ctx.beginPath();
+                ctx.roundRect(bx, by, bw, bh, 8);
+                ctx.fill();
+
+                const pw = (progress / 100) * bw;
+                if (pw > 0) {
+                    const pg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+                    pg.addColorStop(0, '#8dd4ec');
+                    pg.addColorStop(0.5, '#5db8d8');
+                    pg.addColorStop(1, '#a0ddf2');
+                    ctx.fillStyle = pg;
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, pw, bh, 8);
+                    ctx.fill();
+                }
+
+                ctx.fillStyle = '#5a4030';
+                ctx.font = 'bold 10px "PingFang SC", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('干净 ' + Math.round(progress) + '%', W / 2, by + 10);
+            }
+
+            function drawCompletionUI() {
+                if (gameState !== 'done') return;
+
+                const pulse = Math.sin(Date.now() / 500) * 0.06 + 0.44;
+                const overlayAlpha = clamp(doneTimer / 1.5, 0, pulse);
+                ctx.fillStyle = `rgba(255,250,245,${overlayAlpha})`;
+                ctx.fillRect(0, 0, W, H);
+
+                if (doneTimer > 0.8) {
+                    const textAlpha = clamp((doneTimer - 0.8) / 0.5, 0, 1);
+                    const rotation = Date.now() / 1200;
+                    ctx.save();
+                    ctx.globalAlpha = textAlpha;
+                    ctx.translate(W / 2, H / 2 - 28);
+                    ctx.rotate(Math.sin(rotation) * 0.04);
+                    ctx.fillStyle = 'rgba(210,100,120,1)';
+                    ctx.font = 'bold 26px "PingFang SC", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('✨ 香香小猪 ✨', 0, 0);
+                    ctx.restore();
+                }
+
+                if (doneTimer > 1.5) {
+                    const btnAlpha = clamp((doneTimer - 1.5) / 0.4, 0, 1);
+                    const btnX = W / 2 - 55;
+                    const btnY = H / 2 + 6;
+                    const btnW = 110;
+                    const btnH = 38;
+
+                    ctx.globalAlpha = btnAlpha;
+                    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                    ctx.strokeStyle = 'rgba(220,140,150,1)';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.roundRect(btnX, btnY, btnW, btnH, 19);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(200,90,110,1)';
+                    ctx.font = 'bold 16px "PingFang SC", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🔄 再洗一次', W / 2, btnY + 26);
+                    ctx.globalAlpha = 1;
+                }
+            }
+
+            // ============ 粒子 ============
+            function spawnBubble(x, y) {
+                bubbles.push({
+                    x: x + rand(-10, 10),
+                    y: y + rand(-8, 8),
+                    r: 4 + Math.random() * 10,
+                    speed: 0.5 + Math.random() * 1.5,
+                    life: 1,
+                });
+            }
+
+            function spawnHeart(x, y) {
+                hearts.push({
+                    x,
+                    y,
+                    vx: rand(-1.5, 1.5),
+                    vy: -2 - Math.random() * 3,
+                    life: 1,
+                    decay: 0.01 + Math.random() * 0.02,
+                    size: 10 + Math.random() * 10,
+                });
+            }
+
+            // ============ 游戏逻辑 ============
+            function update(dt) {
+                sponge.x = lerp(sponge.x, sponge.tx, 1 - Math.exp(-28 * dt));
+                sponge.y = lerp(sponge.y, sponge.ty, 1 - Math.exp(-28 * dt));
+                if (!isScrubbing) spongeSquish = lerp(spongeSquish, 0, 1 - Math.exp(-12 * dt));
+
+                if (isScrubbing && gameState === 'playing') {
+                    spongeSquish = lerp(spongeSquish, 1, 1 - Math.exp(-20 * dt));
+                    let anyCleaned = false;
+                    mudSpots.forEach(spot => {
+                        if (spot.cleaned >= spot.maxClean) return;
+                        const d = dist(sponge.x, sponge.y, spot.x, spot.y);
+                        const overlap = 26 + spot.r - d;
+                        if (overlap > 0) {
+                            const eff = clamp(overlap / (spot.r + 26), 0.2, 1);
+                            spot.cleaned += eff * dt * 0.72;
+                            if (spot.cleaned > spot.maxClean) spot.cleaned = spot.maxClean;
+                            anyCleaned = true;
+                            if (Math.random() < dt * 18 * eff) spawnBubble(spot.x, spot.y);
+                        }
+                    });
+                    if (anyCleaned) shakeAmount = lerp(shakeAmount, 1.2, 1 - Math.exp(-18 * dt));
+                }
+                shakeAmount = lerp(shakeAmount, 0, 1 - Math.exp(-10 * dt));
+                if (shakeAmount < 0.03) shakeAmount = 0;
+
+                if (gameState === 'playing') {
+                    const total = mudSpots.reduce((a, s) => a + clamp(s.cleaned / s.maxClean, 0, 1), 0);
+                    progress = (total / mudSpots.length) * 100;
+                    if (progress >= 99.5) {
+                        progress = 100;
+                        gameState = 'done';
+                        doneTimer = 0;
+                        mudSpots.forEach(s => (s.cleaned = s.maxClean));
+                    }
+                }
+
+                if (gameState === 'done') {
+                    doneTimer += dt;
+                    if (Math.random() < dt * 5 && doneTimer < 4) {
+                        sparkles.push({
+                            x: 120 + Math.random() * 160,
+                            y: 140 + Math.random() * 200,
+                            life: 1,
+                            r: 3 + Math.random() * 6,
+                        });
+                    }
+                }
+// 弹跳恢复
 
 if(pigBounce>0){
 
-
-pigBounce-=0.35;
-
+pigBounce -= dt*8;
 
 }
-
-
 
 if(pigBounce<0){
 
-
 pigBounce=0;
 
-
 }
 
 
+// 自动眨眼
 
-// 耳朵抖动
+blinkTimer += dt;
 
+if(blinkTimer>4){
 
-if(earShake>0){
+pigBlink=0.18;
 
-
-
-pigTilt =
-Math.sin(
-Date.now()/30
-)
-*
-0.08;
-
-
-
-earShake--;
-
-
-
-}else{
-
-
-pigTilt=0;
-
+blinkTimer=0;
 
 }
 
+if(pigBlink>0){
 
-
-}
-
-
-
-
-// ==========================
-// 鼠标点击
-// ==========================
-
-
-
-canvas.addEventListener(
-
-"mousedown",
-
-e=>{
-
-
-let rect =
-canvas.getBoundingClientRect();
-
-
-
-let x =
-e.clientX-rect.left;
-
-
-
-let y =
-e.clientY-rect.top;
-
-
-
-touchPig(x,y);
-
-
+pigBlink-=dt;
 
 }
 
-);
+                // 更新粒子
+                for (let i = bubbles.length - 1; i >= 0; i--) {
+                    bubbles[i].y -= bubbles[i].speed;
+                    bubbles[i].life -= dt * 0.4;
+                    if (bubbles[i].life <= 0 || bubbles[i].y < -30) bubbles.splice(i, 1);
+                }
+                for (let i = sparkles.length - 1; i >= 0; i--) {
+                    sparkles[i].life -= dt * 0.8;
+                    sparkles[i].y -= dt * 30;
+                    if (sparkles[i].life <= 0) sparkles.splice(i, 1);
+                }
+                for (let i = hearts.length - 1; i >= 0; i--) {
+                    hearts[i].x += hearts[i].vx;
+                    hearts[i].y += hearts[i].vy;
+                    hearts[i].vy += 0.08;
+                    hearts[i].life -= hearts[i].decay;
+                    if (hearts[i].life <= 0) hearts.splice(i, 1);
+                }
+            }
 
+            function render() {
+                ctx.clearRect(0, 0, W, H);
+                drawBackground();
+                drawTileFloor();
+                drawPiggy();
+                if (gameState === 'playing' || (gameState === 'done' && doneTimer < 1)) drawMud();
 
+                bubbles.forEach(b => {
+                    ctx.save();
+                    ctx.globalAlpha = b.life * 0.7;
+                    ctx.fillStyle = 'rgba(200,230,255,0.6)';
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.beginPath();
+                    ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+                sparkles.forEach(s => {
+                    ctx.fillStyle = `rgba(255,220,100,${s.life})`;
+                    ctx.font = `${s.r * 3}px sans-serif`;
+                    ctx.fillText('✨', s.x - s.r, s.y);
+                });
+                hearts.forEach(h => {
+                    ctx.save();
+                    ctx.globalAlpha = h.life;
+                    ctx.fillStyle = '#ff6b8a';
+                    ctx.font = `${h.size}px sans-serif`;
+                    ctx.fillText('❤️', h.x - h.size / 2, h.y + h.size / 2);
+                    ctx.restore();
+                });
 
+                drawSponge();
+                drawProgressBar();
+                drawCompletionUI();
+            }
 
-// ==========================
-// 手机触摸
-// ==========================
+            function gameLoop(timestamp) {
+                if (!gameLoop.lastTime) gameLoop.lastTime = timestamp;
+                let dt = (timestamp - gameLoop.lastTime) / 1000;
+                if (dt > 0.15) dt = 0.15;
+                gameLoop.lastTime = timestamp;
+                update(dt);
+                render();
+                requestAnimationFrame(gameLoop);
+            }
+            gameLoop.lastTime = 0;
 
+            // ============ 事件处理 ============
+            function getPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: (cx - rect.left) * (W / rect.width),
+                    y: (cy - rect.top) * (H / rect.height),
+                };
+            }
 
-
-canvas.addEventListener(
-
-"touchstart",
-
-e=>{
-
-
-e.preventDefault();
-
-
-
-let rect =
-canvas.getBoundingClientRect();
-
-
-
-let touch =
-e.touches[0];
-
-
-
-let x =
-touch.clientX-rect.left;
-
-
-
-let y =
-touch.clientY-rect.top;
-
-
-
-touchPig(x,y);
-
-
-
-},
-
-{
-passive:false
-}
-
-);
-
-
-
-
-
-
-// ==========================
-// 海绵拖动
-// ==========================
-
-
-
-canvas.addEventListener(
-
-"mousedown",
-
-e=>{
-
-
-let rect =
-canvas.getBoundingClientRect();
-
-
-
-let x =
-e.clientX-rect.left;
-
-
-let y =
-e.clientY-rect.top;
-
-
-
+            function handleDown(p) {
+                // 点击小猪
 
 if(
-
-x>sponge.x &&
-
-x<sponge.x+sponge.size &&
-
-y>sponge.y &&
-
-y<sponge.y+sponge.size
-
+p.x>100 &&
+p.x<300 &&
+p.y>120 &&
+p.y<380
 ){
 
+pigBounce=8;
 
-sponge.drag=true;
+pigBlink=0.2;
 
-
-}
-
-
-
-});
-
-
-
-
-
-
-canvas.addEventListener(
-
-"mousemove",
-
-e=>{
-
-
-if(!sponge.drag)
-return;
-
-
-
-let rect =
-canvas.getBoundingClientRect();
-
-
-
-sponge.x =
-e.clientX-rect.left-sponge.size/2;
-
-
-
-sponge.y =
-e.clientY-rect.top-sponge.size/2;
-
-
-
-});
-
-
-
-
-
-
-canvas.addEventListener(
-
-"mouseup",
-
-()=>{
-
-
-sponge.drag=false;
-
-
-});
-
-
-
-
-
-// 手机拖动海绵
-
-
-canvas.addEventListener(
-
-"touchmove",
-
-e=>{
-
-
-e.preventDefault();
-
-
-
-if(!sponge.drag)
-return;
-
-
-
-let rect =
-canvas.getBoundingClientRect();
-
-
-let t =
-e.touches[0];
-
-
-
-sponge.x =
-t.clientX-rect.left-sponge.size/2;
-
-
-
-sponge.y =
-t.clientY-rect.top-sponge.size/2;
-
-
-
-},
-
-{
-passive:false
-}
-
+spawnHeart(
+p.x,
+p.y-50
 );
 
-
-
-
-
-canvas.addEventListener(
-
-"touchend",
-
-()=>{
-
-
-sponge.drag=false;
-
-
-});
-// ==========================
-// 游戏循环
-// ==========================
-
-
-function gameLoop(){
-
-
-
-// 清空画布
-
-ctx.clearRect(
-0,
-0,
-W,
-H
-);
-
-
-
-
-// 背景
-
-drawBackground();
-
-
-
-
-// 更新
-
-updatePig();
-
-updateBlink();
-
-washCheck();
-
-
-
-
-// 绘制
-
-drawPig();
-
-drawBlink();
-
-drawSponge();
-
-drawHearts();
-
-drawDrops();
-
-
-
-
-// 洗干净效果
-
-if(dirt<=0){
-
-
-ctx.font="40px Arial";
-
-
-ctx.fillText(
-
-"✨ 小猪洗干净啦！ ✨",
-
-W/2-150,
-
-100
-
-);
-
-
-
-happy=true;
-
-
 }
 
+                sponge.tx = p.x;
+                sponge.ty = p.y;
+                sponge.x = p.x;
+                sponge.y = p.y;
+                isScrubbing = true;
+                isPointerOnCanvas = true;
 
+                if (gameState === 'done') {
+                    if (p.x > 110 && p.x < 290 && p.y > 130 && p.y < 370) {
+                        for (let i = 0; i < 6; i++) spawnHeart(p.x, p.y);
+                    }
+                    if (doneTimer > 1.5) {
+                        const bx = W / 2 - 55,
+                            by = H / 2 + 6,
+                            bw = 110,
+                            bh = 38;
+                        if (p.x > bx && p.x < bx + bw && p.y > by && p.y < by + bh) {
+                            resetGame();
+                            return;
+                        }
+                    }
+                }
+            }
 
+            canvas.addEventListener('mousedown', e => { e.preventDefault();
+                handleDown(getPos(e)); });
+            canvas.addEventListener('mousemove', e => { e.preventDefault();
+                const p = getPos(e);
+                sponge.tx = p.x;
+                sponge.ty = p.y;
+                isPointerOnCanvas = true; });
+            canvas.addEventListener('mouseup', e => { e.preventDefault();
+                isScrubbing = false;
+                spongeSquish = 0; });
+            canvas.addEventListener('mouseleave', () => { isPointerOnCanvas = false;
+                isScrubbing = false;
+                spongeSquish = 0; });
+            canvas.addEventListener('touchstart', e => { e.preventDefault();
+                handleDown(getPos(e)); }, { passive: false });
+            canvas.addEventListener('touchmove', e => { e.preventDefault();
+                const p = getPos(e);
+                sponge.tx = p.x;
+                sponge.ty = p.y;
+                isPointerOnCanvas = true; }, { passive: false });
+            canvas.addEventListener('touchend', e => { e.preventDefault();
+                isScrubbing = false;
+                spongeSquish = 0; });
+            canvas.addEventListener('touchcancel', e => { e.preventDefault();
+                isScrubbing = false;
+                spongeSquish = 0;
+                isPointerOnCanvas = false; });
 
+            document.addEventListener('mouseup', () => { if (isScrubbing) { isScrubbing = false;
+                    spongeSquish = 0; } });
 
-requestAnimationFrame(
-gameLoop
-);
-
-
-
-}
-
-
-
-
-
-// ==========================
-// 初始化位置调整
-// ==========================
-
-
-function resetGame(){
-
-
-
-pig.x =
-W/2-pig.w/2;
-
-
-pig.y =
-H/2-pig.h/2;
-
-
-
-sponge.x=80;
-
-
-sponge.y=
-H-150;
-
-
-
-}
-
-
-
-resetGame();
-
-
-
-// 开始游戏
-
-gameLoop();
-
-
-</script>
-
+            // ============ 启动 ============
+            resetGame();
+            requestAnimationFrame(gameLoop);
+        })();
+    </script>
 </body>
-
 </html>
