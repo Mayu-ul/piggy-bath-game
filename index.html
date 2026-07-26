@@ -313,70 +313,8 @@ let blinkTimer = 0;
         );
 
 
-        if(pigBlink > 0){
+        
 
-            ctx.fillStyle="rgba(40,30,30,0.8)";
-
-            ctx.beginPath();
-            ctx.ellipse(
-                pigX+65,
-                pigY+105,
-                12,
-                3,
-                0,
-                0,
-                Math.PI*2
-            );
-            ctx.fill();
-
-
-            ctx.beginPath();
-            ctx.ellipse(
-                pigX+135,
-                pigY+105,
-                12,
-                3,
-                0,
-                0,
-                Math.PI*2
-            );
-            ctx.fill();
-
-        }
-
-
-    } else {
-
-        ctx.fillStyle='#ffd2da';
-
-        ctx.beginPath();
-
-        ctx.ellipse(
-            W/2,
-            pigY+pigH/2,
-            pigW/2,
-            pigH/2,
-            0,
-            0,
-            Math.PI*2
-        );
-
-        ctx.fill();
-
-
-        ctx.fillStyle='#fff';
-
-        ctx.font='14px sans-serif';
-
-        ctx.textAlign='center';
-
-        ctx.fillText(
-            '🐷 加载中...',
-            W/2,
-            pigY+pigH/2
-        );
-
-    }
 
 
     ctx.restore();
