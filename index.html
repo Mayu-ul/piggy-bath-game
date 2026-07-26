@@ -140,8 +140,8 @@
             const H = 520;
 
             // ============ 加载你的 PNG 小猪图片 ============
-           const pigImg = new Image();
-    pigImg.src = 'pig2.png';
+   const pigImg = new Image();
+pigImg.src = './pig2.png?v=2';
 
     let pigLoaded = false;
 
@@ -292,22 +292,17 @@ let blinkTimer = 0;
 
             function drawPiggy() {
                 ctx.save();
-                const sx = shakeAmount * (Math.random() - 0.5) * 2;
-
-const sy = shakeAmount * (Math.random() - 0.5) * 2;
-
 const bounce = Math.sin(Date.now()/80) * pigBounce;
 
 ctx.translate(
-    sx,
-    sy - bounce
+0,
+-bounce
 );
                 const pigW = 200;
                 const pigH = 240;
                 const pigX = W / 2 - pigW / 2;
                 const pigY = 130;
-
-             if (pigImgLoaded) { 
+if (pigLoaded) {
                     ctx.drawImage(pigImg, pigX, pigY, pigW, pigH);
                     // 眨眼
 
