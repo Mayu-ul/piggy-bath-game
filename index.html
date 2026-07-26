@@ -553,23 +553,7 @@ pigBounce=0;
 }
 
 
-// 自动眨眼
 
-blinkTimer += dt;
-
-if(blinkTimer>4){
-
-pigBlink=0.18;
-
-blinkTimer=0;
-
-}
-
-if(pigBlink>0){
-
-pigBlink-=dt;
-
-}
 
                 // 更新粒子
                 for (let i = bubbles.length - 1; i >= 0; i--) {
@@ -664,7 +648,7 @@ p.y<380
 
 pigBounce=8;
 
-pigBlink=0.2;
+
 
 spawnHeart(
 p.x,
