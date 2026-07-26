@@ -296,14 +296,20 @@ const bounce = Math.sin(Date.now()/80) * pigBounce;
 
 ctx.translate(
 0,
--bounce
+0
 );
                 const pigW = 200;
                 const pigH = 240;
                 const pigX = W / 2 - pigW / 2;
                 const pigY = 130;
 if (pigLoaded) {
-                    ctx.drawImage(pigImg, pigX, pigY, pigW, pigH);
+                   ctx.drawImage(
+pigImg,
+pigX,
+pigY - bounce,
+pigW,
+pigH
+);
                     // 眨眼
 
 if(pigBlink > 0){
@@ -341,10 +347,16 @@ ctx.fill();
 
 }
 
-                else {
+            } else {
+    ctx.fillStyle = '#ffd2da';
+    ctx.beginPath();
+    ctx.ellipse(W / 2, pigY + pigH / 2, pigW / 2, pigH / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-return;
-
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🐷 加载中...', W / 2, pigY + pigH / 2);
 }
                     ctx.fillStyle = '#ffd2da';
                     ctx.beginPath();
