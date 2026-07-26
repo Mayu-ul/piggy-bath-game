@@ -129,7 +129,7 @@ const H=520;
 
 /*
 ================================
-加载你的 SVG 小猪
+加载你的 PNG 小猪
 ================================
 */
 
@@ -137,7 +137,7 @@ const pigImg=new Image();
 
 
 // 使用你提供的小猪图片
-pigImg.src="pig.svg?123";
+pigImg.src="./pig.png";
 
 
 let pigLoaded=false;
@@ -159,7 +159,15 @@ pigImg.onerror=function(){
     console.log("猪加载失败");
 
 };
+// 小猪互动动画
 
+let pigBounce = 0;       // 弹动程度
+let pigScale = 1;        // 身体缩放
+let pigFace = 0;         // 捏脸程度
+let pigBlink = false;    // 是否眨眼
+
+let blinkTimer = 0;
+let touchPig = false;
 
 
 /*
@@ -484,7 +492,13 @@ ctx.stroke();
 }
 
 }
+if(pigFace>0){
 
+pigW += pigFace*0.3;
+
+pigFace-=0.5;
+
+}
 
 
 /*
@@ -534,14 +548,38 @@ const pigY=130;
 if(
 pigLoaded
 ){
+// 小猪弹性动画
 
+let scaleY = 1 + pigBounce * 0.05;
+let scaleX = 1 - pigBounce * 0.025;
+
+
+// 中心点
+let cx = pigX + pigW/2;
+let cy = pigY + pigH/2;
+
+
+ctx.save();
+
+ctx.translate(cx,cy);
+
+ctx.scale(
+    scaleX,
+    scaleY
+);
+
+
+// 捏脸效果
 ctx.drawImage(
     pigImg,
-    pigX,
-    pigY,
-    200,
-    240
+    -pigW/2,
+    -pigH/2,
+    pigW,
+    pigH
 );
+
+
+ctx.restore();
 
 
 }else{
@@ -911,7 +949,21 @@ by+10
 粒子效果
 ================================
 */
+setInterval(()=>{
 
+
+pigBlink=true;
+
+
+setTimeout(()=>{
+
+pigBlink=false;
+
+
+},150);
+
+
+},3000);
 
 function spawnBubble(x,y){
 
@@ -1776,7 +1828,22 @@ e=>{
 e.preventDefault();
 
 
-handleDown(
+handleDown(// 判断碰到小猪
+
+if(
+p.x>pigX &&
+p.x<pigX+pigW &&
+p.y>pigY &&
+p.y<pigY+pigH
+){
+
+    pigBounce=8;
+
+    pigFace=10;
+
+    touchPig=true;
+
+}
 getPos(e)
 );
 
@@ -1885,7 +1952,20 @@ resetGame();
 
 
 requestAnimationFrame(
-gameLoop
+gameLoop// 弹性恢复
+
+if(pigBounce>0){
+
+    pigBounce -=0.25;
+
+}
+
+
+if(pigBounce<0){
+
+    pigBounce=0;
+
+}
 );
 
 
