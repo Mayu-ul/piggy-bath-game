@@ -137,7 +137,7 @@ const pigImg=new Image();
 
 
 // 使用你提供的小猪图片
-pigImg.src = "./pig.svg";
+pigImg.src="pig.svg?123";
 
 
 let pigLoaded=false;
@@ -146,6 +146,17 @@ let pigLoaded=false;
 pigImg.onload=function(){
 
     pigLoaded=true;
+
+    console.log("猪加载成功");
+
+    render();
+
+};
+
+
+pigImg.onerror=function(){
+
+    console.log("猪加载失败");
 
 };
 
