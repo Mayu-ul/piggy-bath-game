@@ -141,20 +141,18 @@
 
             // ============ 加载你的 PNG 小猪图片 ============
            const pigImg = new Image();
+    pigImg.src = 'pig2.png';
 
-// 你的 GitHub 同目录图片
-pigImg.src = 'pig2.png';
+    let pigLoaded = false;
 
-let pigLoaded = false;
+    pigImg.onload = function(){
+        pigLoaded = true;
+        console.log("小猪加载成功");
+    };
 
-pigImg.onload = function(){
-    pigLoaded = true;
-    console.log("小猪加载成功");
-};
-
-pigImg.onerror = function(){
-    console.log("小猪加载失败");
-};
+    pigImg.onerror = function(){
+        console.log("小猪加载失败");
+    };
             // ============ 游戏状态 ============
             let progress = 0;
             let gameState = 'playing'; // 'playing' | 'done'
@@ -309,7 +307,7 @@ ctx.translate(
                 const pigX = W / 2 - pigW / 2;
                 const pigY = 130;
 
-                if (pigImg.complete && pigImg.naturalWidth > 0) {
+             if (pigImgLoaded) { 
                     ctx.drawImage(pigImg, pigX, pigY, pigW, pigH);
                     // 眨眼
 
